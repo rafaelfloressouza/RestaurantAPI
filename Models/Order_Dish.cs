@@ -1,13 +1,12 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAPI.Models
 {
     public class Order_Dish
     {
-        [Key]
+        [Required]
         public int Dish_ID { get; set; }
-        [Key]
+        [Required]
         public int Order_ID { get; set; }
     }
 }

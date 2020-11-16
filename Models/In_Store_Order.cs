@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAPI.Models
 {
@@ -7,7 +6,6 @@ namespace RestaurantAPI.Models
     {
         [Key]
         public int Order_ID { get; set; }
-        [Key]
         public int waiter_ID { get; set; }
     }
 }

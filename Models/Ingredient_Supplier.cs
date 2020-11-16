@@ -1,14 +1,12 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAPI.Models
 {
     public class Ingredient_Supplier
     {
-        [Key]
+        [Required]
         public string Supplier { get; set; }
-        [Key]
+        [Required]
         public string Ing_Name { get; set; }
     }
 }

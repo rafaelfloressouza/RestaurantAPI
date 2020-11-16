@@ -4,9 +4,10 @@ namespace RestaurantAPI.Models
 {
     public class Waiter
     {
+        [Required]
         [Key]
         public int User_ID { get; set;}
-        public int Hours { get; set; }
+        public double Hours { get; set; }
         public string Type { get; set; }
     }
 }
