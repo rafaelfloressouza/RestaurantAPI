@@ -10,10 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RAPI2.Context;
+using RestaurantAPI.Context;
 using Microsoft.EntityFrameworkCore;
 
-namespace RAPI2
+namespace RestaurantAPI
+
 {
     public class Startup
     {

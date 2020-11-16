@@ -1,29 +1,31 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantAPI.Context;
-using RestaurantAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Models;
+using RestaurantAPI.Context;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
-    public class IngredientController : Controller
+    public class MenuController : Controller
     {
         private readonly AppDBContext context;
 
-        public IngredientController(AppDBContext context)
+        public MenuController(AppDBContext context)
         {
             this.context = context;
         }
 
-        // GET: api/ingredient
+        // GET: api/menu
         [HttpGet]
         public ActionResult Get()
         {
             try
             {
-                return Ok(context.Ingredient.ToList());
+                return Ok(context.Menu.ToList());
             }
             catch (Exception ex)
             {
@@ -31,14 +33,14 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // GET api/ingredient/name
-        [HttpGet("{Name}", Name ="GetIngredient")]
-        public ActionResult Get(string Name)
+        // GET api/menu/Vegeterian 
+        [HttpGet("{Type}",Name ="GetMenu")]
+        public ActionResult Get(string Type)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                return Ok(ingredient);
+                var menu = context.Menu.FirstOrDefault(f => f.Type.Equals(Type));
+                return Ok(menu);
             }
             catch (Exception ex)
             {
@@ -46,15 +48,15 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // POST api/ingredient
+        // POST api/menu
         [HttpPost]
-        public ActionResult Post([FromBody] Ingredient ingredient)
+        public ActionResult Post([FromBody] Menu menu)
         {
             try
             {
-                context.Ingredient.Add(ingredient);
+                context.Menu.Add(menu);
                 context.SaveChanges();
-                return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                return CreatedAtRoute("GetMenu", new { TYPE = menu.Type }, menu);
             }
             catch (Exception ex)
             {
@@ -62,17 +64,17 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // PUT api/ingredient/name
-        [HttpPut("{Name}")]
-        public ActionResult Put(string Name, [FromBody] Ingredient ingredient)
+        // PUT api/menu/Vegeterian
+        [HttpPut("{Type}")]
+        public ActionResult Put(string Type, [FromBody] Menu menu)
         {
             try
             {
-                if (ingredient.Name.Equals(Name))
+                if (menu.Type.Equals(Type))
                 {
-                    context.Entry(ingredient).State = EntityState.Modified;
+                    context.Entry(menu).State = EntityState.Modified;
                     context.SaveChanges();
-                    return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                    return CreatedAtRoute("GetMenu", new { TYPE = menu.Type }, menu);
                 }
                 else
                 {
@@ -85,18 +87,18 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // DELETE api/ingredient/5
-        [HttpDelete("{Name}")]
-        public ActionResult Delete(string Name)
+        // DELETE api/menu/5
+        [HttpDelete("{Type}")]
+        public ActionResult Delete(string Type)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                if (ingredient != null)
+                var menu = context.Menu.FirstOrDefault(f => f.Type.Equals(Type));
+                if (menu != null)
                 {
-                    context.Ingredient.Remove(ingredient);
+                    context.Menu.Remove(menu);
                     context.SaveChanges();
-                    return Ok(Name);
+                    return Ok(Type);
                 }
                 else
                 {

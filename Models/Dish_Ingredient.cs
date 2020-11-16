@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace RAPI2.Models
+namespace RestaurantAPI.Models
 {
     public class Dish_Ingredient
     {

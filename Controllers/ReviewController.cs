@@ -1,29 +1,29 @@
-﻿using System;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc;
-using RestaurantAPI.Context;
+﻿using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
+using RestaurantAPI.Context;
+using System.Linq;
+using System;
 using Microsoft.EntityFrameworkCore;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
-    public class IngredientController : Controller
+    public class ReviewController : Controller
     {
         private readonly AppDBContext context;
 
-        public IngredientController(AppDBContext context)
+        public ReviewController(AppDBContext context)
         {
             this.context = context;
         }
 
-        // GET: api/ingredient
+        // GET: api/review
         [HttpGet]
         public ActionResult Get()
         {
             try
             {
-                return Ok(context.Ingredient.ToList());
+                return Ok(context.Review.ToList());
             }
             catch (Exception ex)
             {
@@ -31,14 +31,14 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // GET api/ingredient/name
-        [HttpGet("{Name}", Name ="GetIngredient")]
-        public ActionResult Get(string Name)
+        // GET api/review/5
+        [HttpGet("{id}", Name ="GetReview")]
+        public ActionResult Get(int id)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                return Ok(ingredient);
+                var review = context.Review.FirstOrDefault(f => f.Review_ID == id);
+                return Ok(review);
             }
             catch (Exception ex)
             {
@@ -46,15 +46,15 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // POST api/ingredient
+        // POST api/values
         [HttpPost]
-        public ActionResult Post([FromBody] Ingredient ingredient)
+        public ActionResult Post([FromBody] Review review)
         {
             try
             {
-                context.Ingredient.Add(ingredient);
+                context.Review.Add(review);
                 context.SaveChanges();
-                return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                return CreatedAtRoute("GetReview", new { ID = review.Review_ID }, review);
             }
             catch (Exception ex)
             {
@@ -62,17 +62,17 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // PUT api/ingredient/name
-        [HttpPut("{Name}")]
-        public ActionResult Put(string Name, [FromBody] Ingredient ingredient)
+        // PUT api/review/5
+        [HttpPut("{id}")]
+        public ActionResult Put(int id, [FromBody] Review review)
         {
             try
             {
-                if (ingredient.Name.Equals(Name))
+                if (review.Review_ID == id)
                 {
-                    context.Entry(ingredient).State = EntityState.Modified;
+                    context.Entry(review).State = EntityState.Modified;
                     context.SaveChanges();
-                    return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                    return CreatedAtRoute("GetReview", new { ID = review.Review_ID }, review);
                 }
                 else
                 {
@@ -85,18 +85,18 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // DELETE api/ingredient/5
-        [HttpDelete("{Name}")]
-        public ActionResult Delete(string Name)
+        // DELETE api/review/5
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                if (ingredient != null)
+                var review = context.Review.FirstOrDefault(f => f.Review_ID == id);
+                if (review != null)
                 {
-                    context.Ingredient.Remove(ingredient);
+                    context.Review.Remove(review);
                     context.SaveChanges();
-                    return Ok(Name);
+                    return Ok(id);
                 }
                 else
                 {

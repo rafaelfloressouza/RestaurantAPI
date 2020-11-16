@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace RAPI2.Models
+namespace RestaurantAPI.Models
 {
     public class User
     {  
@@ -9,9 +9,10 @@ namespace RAPI2.Models
         public int ID { get; set; }
         public string Username { get; set; }
         public string Password { get; set; } 
-        public string FirstName { get; set; } 
-        public string LastName { get; set; }
+        public string FirstName { get; set; }
         public string MiddleName { get; set; }
+        public string LastName { get; set; }
+        public string GivenName { get; set; }
         public string Addr1 { get; set; } 
         public string Addr2 { get; set; } 
         public string Province { get; set; } 
@@ -22,4 +23,3 @@ namespace RAPI2.Models
         public string Email { get; set; }   
     }
 }
-

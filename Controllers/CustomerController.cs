@@ -1,29 +1,32 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantAPI.Context;
-using RestaurantAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Models;
+using RestaurantAPI.Context;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
-    public class IngredientController : Controller
+    public class CustomerController : Controller
     {
+
         private readonly AppDBContext context;
 
-        public IngredientController(AppDBContext context)
+        public CustomerController(AppDBContext context)
         {
             this.context = context;
         }
 
-        // GET: api/ingredient
+        // GET: api/customer
         [HttpGet]
         public ActionResult Get()
         {
             try
             {
-                return Ok(context.Ingredient.ToList());
+                return Ok(context.Customer.ToList());
             }
             catch (Exception ex)
             {
@@ -31,14 +34,14 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // GET api/ingredient/name
-        [HttpGet("{Name}", Name ="GetIngredient")]
-        public ActionResult Get(string Name)
+        // GET api/customer/5
+        [HttpGet("{id}", Name="GetCustomer")]
+        public ActionResult Get(int id)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                return Ok(ingredient);
+                var customer = context.Customer.FirstOrDefault(f => f.User_ID == id);
+                return Ok(customer);
             }
             catch (Exception ex)
             {
@@ -46,15 +49,15 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // POST api/ingredient
+        // POST api/customer
         [HttpPost]
-        public ActionResult Post([FromBody] Ingredient ingredient)
+        public ActionResult Post([FromBody] Customer customer)
         {
             try
             {
-                context.Ingredient.Add(ingredient);
+                context.Customer.Add(customer);
                 context.SaveChanges();
-                return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                return CreatedAtRoute("GetCustomer", new { ID = customer.User_ID }, customer);
             }
             catch (Exception ex)
             {
@@ -62,17 +65,17 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // PUT api/ingredient/name
-        [HttpPut("{Name}")]
-        public ActionResult Put(string Name, [FromBody] Ingredient ingredient)
+        // PUT api/customer/5
+        [HttpPut("{id}")]
+        public ActionResult Put(int id, [FromBody] Customer customer)
         {
             try
             {
-                if (ingredient.Name.Equals(Name))
+                if (customer.User_ID == id)
                 {
-                    context.Entry(ingredient).State = EntityState.Modified;
+                    context.Entry(customer).State = EntityState.Modified;
                     context.SaveChanges();
-                    return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                    return CreatedAtRoute("GetCustomer", new { ID = customer.User_ID }, customer);
                 }
                 else
                 {
@@ -85,18 +88,18 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // DELETE api/ingredient/5
-        [HttpDelete("{Name}")]
-        public ActionResult Delete(string Name)
+        // DELETE api/customer/5
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
         {
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                if (ingredient != null)
+                var customer = context.Customer.FirstOrDefault(f => f.User_ID == id);
+                if (customer != null)
                 {
-                    context.Ingredient.Remove(ingredient);
+                    context.Customer.Remove(customer);
                     context.SaveChanges();
-                    return Ok(Name);
+                    return Ok(id);
                 }
                 else
                 {

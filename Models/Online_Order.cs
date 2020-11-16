@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 
 
-namespace RAPI2.Models
+namespace RestaurantAPI.Models
 {
     public class Online_Order
     {

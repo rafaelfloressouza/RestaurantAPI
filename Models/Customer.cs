@@ -1,11 +1,11 @@
-﻿//using System;
-//using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-//namespace RAPI2.Models
-//{
-//    public class Customer
-//    {
-//        public int User_ID { get; set; }
-//        public int TableNo { get; set; }
-//    }
-//}
+namespace RestaurantAPI.Models
+{
+    public class Customer
+    {
+        [Key]
+        public int User_ID { get; set; }
+        public int? TableNo { get; set; }
+    }
+}

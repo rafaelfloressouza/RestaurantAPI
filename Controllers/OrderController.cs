@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using RAPI2.Context;
-using RAPI2.Models;
+using RestaurantAPI.Context;
+using RestaurantAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace RAPI2.Controllers
