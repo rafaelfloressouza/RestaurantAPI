@@ -14,4 +14,7 @@
     <Content Remove="Properties\launchSettings.json" />
     <Content Remove="Properties\launchSettings.json" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
 </Project>

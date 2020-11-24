@@ -29,7 +29,7 @@ namespace RestaurantAPI.Context
             .HasKey(ot => new { ot.Order_ID, ot.TableNo });
 
             modelBuilder.Entity<Order_Transaction>()
-          .HasKey(otr => new { otr.Order_ID, otr.Transaction_ID});
+          .HasKey(otr => new { otr.Order_ID, otr.Transaction_ID });
         }
 
         public DbSet<User> User { get; set; }
@@ -48,10 +48,10 @@ namespace RestaurantAPI.Context
         public DbSet<Customer_Transaction> Customer_Transaction { get; set; }
         public DbSet<Dish_Ingredient> Dish_Ingredient { get; set; }
         public DbSet<Ingredient_Supplier> Ingredient_Supplier { get; set; }
-        public DbSet<In_Store_Order> In_Store_Order{get;set;}
+        public DbSet<In_Store_Order> In_Store_Order { get; set; }
         public DbSet<Online_Order> Online_Order { get; set; }
         public DbSet<Order_Dish> Order_Dish { get; set; }
-        public DbSet<Order_Table> Order_Table { get; set;}
+        public DbSet<Order_Table> Order_Table { get; set; }
         public DbSet<Order_Transaction> Order_Transaction { get; set; }
     }
 }

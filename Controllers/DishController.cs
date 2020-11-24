@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantAPI.Context;
 using RestaurantAPI.Models;
-using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Data;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
@@ -11,103 +11,118 @@ namespace RestaurantAPI.Controllers
     public class DishController : Controller
     {
 
-        private readonly AppDBContext context;
+        private readonly DishRepository _repository;
 
-        public DishController(AppDBContext context)
+        public DishController(DishRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/dish
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Dish>> Get()
         {
-            try
-            {
-                return Ok(context.Dish.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            return await _repository.GetAll();
         }
 
+        
         // GET api/dish/5
-        [HttpGet("{id}", Name= "GetDish")]
-        public ActionResult Get(int id)
+          [HttpGet("{id}")]
+        public async Task<ActionResult<Dish>> Get(int id)
         {
             try
             {
-                var dish = context.Dish.FirstOrDefault(f => f.Dish_ID == id);
-                return Ok(dish);
+                var response = await _repository.GetById(id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/dish
         [HttpPost]
-        public ActionResult Post([FromBody] Dish dish)
+        public async Task<ActionResult> Post([FromBody] Dish dish)
         {
             try
             {
-                context.Dish.Add(dish);
-                context.SaveChanges();
-                return CreatedAtRoute("GetDish", new {ID = dish.Dish_ID }, dish);
+                await _repository.Insert(dish);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
-        // PUT api/dish/5
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Dish dish)
+            // PUT api/dish/5
+            [HttpPut("{id}")]
+        public async Task<ActionResult> Put(int id, [FromBody] Dish dish)
         {
+            
+            if (id != dish.Dish_ID)
+            {
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (dish.Dish_ID == id)
+                var response = await _repository.GetById(id);
+
+                if (response == null)
                 {
-                    context.Entry(dish).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetDish", new { ID = dish.Dish_ID }, dish);
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    await _repository.ModifyById(dish);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message.ToString());
+
             }
+            catch
+            {
+                return BadRequest("Error: Record could not be updated\n");
+            } 
         }
 
         // DELETE api/dish/5
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
             try
             {
-                var dish = context.Dish.FirstOrDefault(f => f.Dish_ID == id);
-                if (dish != null)
-                {
-                    context.Dish.Remove(dish);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                var response = await _repository.GetById(id);
+                await _repository.DeleteById(id);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }
+        
 }

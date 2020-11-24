@@ -3,51 +3,49 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class CookController : Controller
     {
-        private readonly AppDBContext context;
+        private readonly CookRepository _repository;
 
-        public CookController(AppDBContext context)
+        public CookController(CookRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/cook
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Cook>> Get()
         {
-            try
-            {
-                return Ok(context.Cook.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            return await _repository.GetAll();
         }
+
 
         // GET api/cook/5
-        [HttpGet("{id}", Name ="GetCook")]
-        public ActionResult Get(int id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Cook>> Get(int id)
         {
             try
             {
-                var cook = context.Cook.FirstOrDefault(f => f.User_ID == id);
-                return Ok(cook);
+                var response = await _repository.GetById(id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
+        /*
         // POST api/cook
         [HttpPost]
         public ActionResult Post([FromBody] Cook cook)
@@ -111,5 +109,6 @@ namespace RestaurantAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        */
     }
 }
