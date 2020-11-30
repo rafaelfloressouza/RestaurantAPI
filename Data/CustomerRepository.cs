@@ -89,7 +89,8 @@ namespace RestaurantAPI.Data
                     cmd.Parameters.Add(new NpgsqlParameter("user_id", NpgsqlDbType.Integer));
                     cmd.Parameters.Add(new NpgsqlParameter("table_no", NpgsqlDbType.Integer));
                     cmd.Parameters[0].Value = customer.User_ID;
-                    cmd.Parameters[1].Value = customer.TableNo;
+                    if (customer.TableNo == null) cmd.Parameters[1].Value = DBNull.Value;
+                    else cmd.Parameters[1].Value = customer.TableNo;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
@@ -122,7 +123,8 @@ namespace RestaurantAPI.Data
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spCustomer_DeleteById\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add(new NpgsqlParameter<int>("id", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = id });
+                    cmd.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Integer));
+                    cmd.Parameters[0].Value = id;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;

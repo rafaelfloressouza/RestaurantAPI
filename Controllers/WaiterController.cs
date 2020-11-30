@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
 
 
 namespace RestaurantAPI.Controllers
@@ -13,102 +11,117 @@ namespace RestaurantAPI.Controllers
     [Route("api/[controller]")]
     public class WaiterController : Controller
     {
-        private readonly AppDBContext context;
+        private readonly WaiterRepository _repository;
+        private readonly UserRepository _userRepository;
 
-        public WaiterController(AppDBContext context)
+        public WaiterController(WaiterRepository repository, UserRepository userRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _userRepository = userRepository ?? throw new ArgumentException(nameof(userRepository));
         }
 
         // GET: api/waiter
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Waiter>> Get()
         {
-            try
-            {
-                return Ok(context.Waiter.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Waiter table
+            return await _repository.GetAll();
         }
 
-        // GET api/waiter/5
-        [HttpGet("{id}", Name ="GetWaiter")]
-        public ActionResult Get(int id)
+        // GET api/waiters/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Waiter>> Get(int id)
         {
             try
             {
-                var waiter = context.Waiter.FirstOrDefault(f => f.User_ID == id);
-                return Ok(waiter);
+                // Searching for record in the database
+                var response = await _repository.GetById(id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/waiter
         [HttpPost]
-        public ActionResult Post([FromBody] Waiter waiter)
+        public ActionResult Post()
         {
-            try
-            {
-                context.Waiter.Add(waiter);
-                context.SaveChanges();
-                return CreatedAtRoute("GetWaiter", new { ID = waiter.User_ID }, waiter);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // We cannot add any entry directly to the Waiter table. It has to be done directly through the user table
+            return BadRequest("ERROR: You cannot insert entries into the Waiter table. Try inserting a new user\n");
         }
 
         // PUT api/waiter/5
         [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Waiter waiter)
+        public async Task<ActionResult> Put(int id, [FromBody] Waiter waiter)
         {
+            // If id in body does not match id in URL
+            if (id != waiter.User_ID)
+            {
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (waiter.User_ID == id)
+                // Searching for record in the database
+                var response = await _repository.GetById(id);
+
+                if (response == null)
                 {
-                    context.Entry(waiter).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetWaiter", new { ID = waiter.User_ID }, waiter);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyById(waiter);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, id));
                 }
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record scould not be updated\n");
             }
         }
 
         // DELETE api/waiter/5
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
             try
             {
-                var waiter = context.Waiter.FirstOrDefault(f => f.User_ID == id);
-                if (waiter != null)
-                {
-                    context.Waiter.Remove(waiter);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record inn the Customer table
+                var response = await _repository.GetById(id);
+
+                // Deleting record from User table (it will cascade to the Customer table)
+                await _userRepository.DeleteById(id);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

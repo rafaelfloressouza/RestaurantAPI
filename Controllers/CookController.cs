@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
@@ -12,16 +11,19 @@ namespace RestaurantAPI.Controllers
     public class CookController : Controller
     {
         private readonly CookRepository _repository;
+        private readonly UserRepository _userRepository;
 
-        public CookController(CookRepository repository)
+        public CookController(CookRepository repository, UserRepository userRepo)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _userRepository = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
         }
 
         // GET: api/cook
         [HttpGet]
         public async Task<List<Cook>> Get()
         {
+            // Get all records from the cook table
             return await _repository.GetAll();
         }
 
@@ -32,83 +34,96 @@ namespace RestaurantAPI.Controllers
         {
             try
             {
+                // Searching dor record
                 var response = await _repository.GetById(id);
                 return response;
             }
             catch (Npgsql.PostgresException ex)
             {
+                // Posgres threw an exception
                 return BadRequest(ex.Message.ToString());
             }
             catch
             {
+                // Unknown error
                 return NotFound("Record you are searching for does not exist");
             }
         }
 
-        /*
+
         // POST api/cook
         [HttpPost]
-        public ActionResult Post([FromBody] Cook cook)
+        public ActionResult Post()
         {
-            try
-            {
-                context.Cook.Add(cook);
-                context.SaveChanges();
-                return CreatedAtRoute("GetCook", new { ID = cook.User_ID }, cook);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-
+            // We cannot add any entry directly to the Cook table. It has to be done directly through the user table
+            return BadRequest("ERROR: You cannot insert entries into the Cook table. Try inserting a new user\n");
         }
+
 
         // PUT api/cook/5
         [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Cook cook)
+        public async Task<ActionResult> Put(int id, [FromBody] Cook cook)
         {
+            if (id != cook.User_ID)                           
+            {
+                // If id from body and id from URL don't match
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (cook.User_ID == id)
+                // Searching for reacoord
+                var response = await _repository.GetById(id); 
+                    
+                if (response == null)                         
                 {
-                    context.Entry(cook).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetCook", new { ID = cook.User_ID }, cook);
+                    // If record does not exist
+                    return NotFound("Record was not found\n");
                 }
-                else
+                else                                         
                 {
-                    return BadRequest();
+                    // Recornd exists, then modify it
+                    await _repository.ModifyById(cook);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)              
             {
-                return BadRequest(ex.Message);
+                // Postgres threw some exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch                                          
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
         // DELETE api/cook/5
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
             try
             {
-                var cook = context.Cook.FirstOrDefault(f => f.User_ID == id);
-                if (cook != null)
-                {
-                    context.Cook.Remove(cook);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Search if the record exists
+                var response = await _repository.GetById(id);
+
+                // We delete the user (it will cascade to the cook)
+                await _userRepository.DeleteById(id);           
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
-        */
     }
 }

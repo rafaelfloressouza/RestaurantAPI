@@ -7,8 +7,8 @@ namespace RestaurantAPI.Models
     {
         [Key]
         public string Name{ get; set; }
-        public double Price { get; set; }
+        public decimal Price { get; set; }
         public DateTime Exp_Date { get; set; }
-        public double Quantity { get; set; }
+        public decimal Quantity { get; set; }
     }
 }

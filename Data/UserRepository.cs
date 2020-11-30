@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using RestaurantAPI.Models;
 using Npgsql;
+using System.Data;
 
 namespace RestaurantAPI.Data
 {
@@ -22,7 +23,7 @@ namespace RestaurantAPI.Data
             {
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_GetAll\"", sql))
                 {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     var response = new List<User>();
                     await sql.OpenAsync();
 
@@ -39,35 +40,13 @@ namespace RestaurantAPI.Data
             }
         }
 
-        private User MapToValue(NpgsqlDataReader reader)
-        {
-            return new User()
-            {
-                ID = (int)reader["ID"],
-                Username = reader["Username"].ToString(),
-                Password = reader["Password"].ToString(),
-                FirstName = reader["FirstName"].ToString(),
-                MiddleName = reader["MiddleName"].ToString(),
-                LastName = reader["LastName"].ToString(),
-                GivenName = reader["GivenName"].ToString(),
-                Addr1 = reader["Addr1"].ToString(),
-                Addr2 = reader["Addr2"].ToString(),
-                Province = reader["Province"].ToString(),
-                PostalCode = reader["PostalCode"].ToString(),
-                Sex = reader["Sex"].ToString(),
-                Phone = reader["Phone"].ToString(),
-                DOB = (DateTime)reader["DOB"],
-                Email = reader["Email"].ToString(),
-            };
-    }
-
         public async Task<User> GetById(int id)
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_GetById\"", sql))
                 {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter<int> ("id", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = id});
                     User response = null;
                     await sql.OpenAsync();
@@ -91,7 +70,7 @@ namespace RestaurantAPI.Data
             {
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_InsertValue\"", sql))
                 {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter<string>("username", NpgsqlTypes.NpgsqlDbType.Varchar) { TypedValue = user.Username});
                     cmd.Parameters.Add(new NpgsqlParameter<string>("password", NpgsqlTypes.NpgsqlDbType.Varchar) { TypedValue = user.Password });
                     cmd.Parameters.Add(new NpgsqlParameter<string>("firstname", NpgsqlTypes.NpgsqlDbType.Varchar) { TypedValue = user.FirstName });
@@ -118,7 +97,7 @@ namespace RestaurantAPI.Data
             {
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_ModifyById\"", sql))
                 {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter<int>("id", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = user.ID });
                     cmd.Parameters.Add(new NpgsqlParameter<string>("username", NpgsqlTypes.NpgsqlDbType.Varchar) { TypedValue = user.Username });
                     cmd.Parameters.Add(new NpgsqlParameter<string>("password", NpgsqlTypes.NpgsqlDbType.Varchar) { TypedValue = user.Password });
@@ -147,7 +126,7 @@ namespace RestaurantAPI.Data
             {
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_DeleteById\"", sql))
                 {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter<int>("id", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = id});
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
@@ -156,29 +135,42 @@ namespace RestaurantAPI.Data
             }
         }
 
-
-        public async Task<int> getLastInserted()
+        private User MapToValue(NpgsqlDataReader reader)
         {
-            return 0;
-            //using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
-            //{
-            //    using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_GetAll\"", sql))
-            //    {
-            //        cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            //        int? response = null;
-            //        await sql.OpenAsync();
+            return new User()
+            {
+                ID = (int)reader["ID"],
+                Username = reader["Username"].ToString(),
+                Password = reader["Password"].ToString(),
+                FirstName = reader["FirstName"].ToString(),
+                MiddleName = reader["MiddleName"].ToString(),
+                LastName = reader["LastName"].ToString(),
+                GivenName = reader["GivenName"].ToString(),
+                Addr1 = reader["Addr1"].ToString(),
+                Addr2 = reader["Addr2"].ToString(),
+                Province = reader["Province"].ToString(),
+                PostalCode = reader["PostalCode"].ToString(),
+                Sex = reader["Sex"].ToString(),
+                Phone = reader["Phone"].ToString(),
+                DOB = (DateTime)reader["DOB"],
+                Email = reader["Email"].ToString(),
+            };
+        }
 
-            //        using (var reader = await cmd.ExecuteReaderAsync())
-            //        {
-            //            while (await reader.ReadAsync())
-            //            {
-            //                response.Add(MapToValue(reader));
-            //            }
-            //        }
-
-            //        return response[0].ID;
-            //    }
-            //}
+        public async Task<int> getLastInsertedID()
+        {
+            using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
+            {
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spUser_LastInserted\"", sql))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new NpgsqlParameter("cur_user_id", NpgsqlTypes.NpgsqlDbType.Integer) { Direction = ParameterDirection.Output });
+                    await sql.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                    return Convert.ToInt32(cmd.Parameters[0].Value);
+                    
+                }
+            }
         }
     }
 }

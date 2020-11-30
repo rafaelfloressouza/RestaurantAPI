@@ -1,111 +1,158 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantAPI.Context;
 using RestaurantAPI.Models;
-using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Data;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Globalization;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class IngredientController : Controller
     {
-        private readonly AppDBContext context;
-
-        public IngredientController(AppDBContext context)
+        private readonly IngredientRepository _repository;
+        
+        public IngredientController(IngredientRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/ingredient
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Ingredient>> Get()
         {
-            try
-            {
-                return Ok(context.Ingredient.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Ingredient table
+            return await _repository.GetAll();
         }
 
-        // GET api/ingredient/name
-        [HttpGet("{Name}", Name ="GetIngredient")]
-        public ActionResult Get(string Name)
+        // GET api/ingredient/potato
+        [HttpGet("{ing_name}")]
+        public async Task<ActionResult<Ingredient>> Get(string ing_name)
         {
+            // Making sure that ingredient name is title case
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            ing_name = textInfo.ToTitleCase(ing_name.ToLower());
+
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                return Ok(ingredient);
+                // Searching for record in the database
+                var response = await _repository.GetByName(ing_name);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/ingredient
         [HttpPost]
-        public ActionResult Post([FromBody] Ingredient ingredient)
+        public async Task<ActionResult> Post([FromBody] Ingredient ingredient)
         {
+            // Making sure that ingredient name is title case
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            ingredient.Name = textInfo.ToTitleCase(ingredient.Name.ToLower());
+
             try
             {
-                context.Ingredient.Add(ingredient);
-                context.SaveChanges();
-                return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                // Inserting record in the Dish table
+                await _repository.Insert(ingredient);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
-        // PUT api/ingredient/name
-        [HttpPut("{Name}")]
-        public ActionResult Put(string Name, [FromBody] Ingredient ingredient)
+        // PUT api/ingredient/potato
+        [HttpPut("{ing_name}")]
+        public async Task<ActionResult> Put(string ing_name, [FromBody] Ingredient ingredient)
         {
+            // Making sure that ingredient name is title case
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            ing_name = textInfo.ToTitleCase(ing_name.ToLower());
+            ingredient.Name = textInfo.ToTitleCase(ingredient.Name.ToLower());
+
+            // If ing_name in body does not match ing_name in URL
+            if (!ing_name.Equals(ingredient.Name))
+            {
+                return BadRequest("Ingredient name in URL has to match the ingredient name of the record to be updated\n");
+            }
+
             try
             {
-                if (ingredient.Name.Equals(Name))
+                // Searching for record in the database
+                var response = await _repository.GetByName(ing_name);
+
+                if (response == null)
                 {
-                    context.Entry(ingredient).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetIngredient", new { NAME = ingredient.Name }, ingredient);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyByName(ingredient);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, ing_name));
                 }
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
-        // DELETE api/ingredient/5
-        [HttpDelete("{Name}")]
-        public ActionResult Delete(string Name)
+        // DELETE api/ingredient/potato
+        [HttpDelete("{ing_name}")]
+        public async Task<ActionResult> Delete(string ing_name)
         {
+            // Making sure that ingredient name is title case
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            ing_name = textInfo.ToTitleCase(ing_name.ToLower());
+
             try
             {
-                var ingredient = context.Ingredient.FirstOrDefault(f => f.Name.Equals(Name));
-                if (ingredient != null)
-                {
-                    context.Ingredient.Remove(ingredient);
-                    context.SaveChanges();
-                    return Ok(Name);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record in the Ingredient table
+                var response = await _repository.GetByName(ing_name);
+
+                // Deleting record from Ingredient table
+                await _repository.DeleteByName(ing_name);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, ing_name));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

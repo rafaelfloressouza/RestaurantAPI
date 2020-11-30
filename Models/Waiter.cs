@@ -7,7 +7,7 @@ namespace RestaurantAPI.Models
         [Required]
         [Key]
         public int User_ID { get; set;}
-        public double Hours { get; set; }
+        public decimal Hours { get; set; }
         public string Type { get; set; }
     }
 }

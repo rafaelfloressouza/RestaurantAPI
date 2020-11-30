@@ -1,113 +1,155 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
-using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Data;
 
 namespace RestaurantAPI.Controllers
 {
-    [Route("api/[controller]")]
+    //[Route("api/[controller]")]
     public class ManagerController : Controller
     {
-        private readonly AppDBContext context;
+        private readonly ManagerRepository _repository;
+        private readonly UserRepository _userRepository;
 
-        public ManagerController(AppDBContext context)
+        public ManagerController(ManagerRepository repository, UserRepository userRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _userRepository = userRepository ?? throw new ArgumentException(nameof(repository));
         }
 
         // GET: api/manager
+        [Route("api/[controller]")]
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Manager>> Get()
         {
-            try
-            {
-                return Ok(context.Manager.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Manager table
+            return await _repository.GetAll();
         }
+
 
         // GET api/manager/5
-        [HttpGet("{id}", Name="GetManager")]
-        public ActionResult Get(int id)
+        [Route("api/[controller]/{id:int}")]
+        [HttpGet]
+        public async Task<ActionResult<Manager>> Get(int id)
         {
             try
             {
-                var manager = context.Manager.FirstOrDefault(f => f.User_ID == id);
-                return Ok(manager);
+                // Searching for record in the database
+                var response = await _repository.GetById(id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
+
 
         // POST api/manager
+        [Route("api/[controller]")]
         [HttpPost]
-        public ActionResult Post([FromBody] Manager manager)
+        public ActionResult Post()
         {
-            try
-            {
-                context.Manager.Add(manager);
-                context.SaveChanges();
-                return CreatedAtRoute("GetManager", new { ID = manager.User_ID }, manager);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // We cannot add any entry directly to the Manager table. It has to be done directly through the user table
+            return BadRequest("ERROR: You cannot insert entries into the Manager table. Try inserting a new user\n");
         }
 
+
         // PUT api/manager/5
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Manager manager)
+        [Route("api/[controller]/{id:int}")]
+        [HttpPut]
+        public async Task<ActionResult> Put(int id, [FromBody] Manager manager)
         {
+            // If id in body does not match id in URL
+            if (id != manager.User_ID)
+            {
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (manager.User_ID == id)
+                // Searching for record in the database
+                var response = await _repository.GetById(id);
+
+                if (response == null)
                 {
-                    context.Entry(manager).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetManager", new { ID = manager.User_ID }, manager);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyById(manager);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
         // DELETE api/manager/5
-        [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        [Route("api/[controller]/{id:int}")]
+        [HttpDelete]
+        public async Task<ActionResult> Delete(int id)
         {
             try
             {
-                var manager = context.Manager.FirstOrDefault(f => f.User_ID == id);
-                if (manager != null)
-                {
-                    context.Manager.Remove(manager);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record inn the Manager table
+                var response = await _repository.GetById(id);
+
+                // Deleting record from User table (it will cascade to the Customer table)
+                await _userRepository.DeleteById(id);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        [Route("api/getNumberManagers")]
+        [HttpGet]
+        public async Task<ActionResult> getManagerNumber()
+        {
+            try
+            {
+                int response = await _repository.getManagerNum();
+                string format = "There are {0} manager(s)\n";
+                return Ok(String.Format(format, response));
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Number of managers could not be retrievedn");
             }
         }
     }
