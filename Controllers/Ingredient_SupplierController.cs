@@ -1,66 +1,84 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;    
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
+using System.Globalization;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Ingredient_SupplierController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Ingredient_SupplierController(AppDBContext context)
+        private readonly Ingredient_SupplierRepository _repository;
+        private readonly IngredientRepository _ingredientRepository;
+        private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+        
+        public Ingredient_SupplierController(Ingredient_SupplierRepository repository, IngredientRepository ingredientRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _ingredientRepository = ingredientRepository ?? throw new ArgumentNullException(nameof(ingredientRepository));
         }
 
         // GET: api/ingredient_supplier
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Ingredient_Supplier>> Get()
         {
-            try
-            {
-                return Ok(context.Ingredient_Supplier.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Ingredient_Supplier table
+            return await _repository.GetAll();
         }
 
-        // GET api/ingredient_supplier/ing_name/supplier
-        [HttpGet("{Ing_Name}/{Supplier}", Name ="GetIngredientSupplier")]
-        public ActionResult Get(string Ing_Name, string Supplier)
+        // GET api/ingredient_supplier/potato/michael's
+        [HttpGet("{ing_name}/{supplier}")]
+        public async Task<ActionResult<Ingredient_Supplier>> Get(string ing_name, string supplier)
         {
             try
             {
-                var ingredient_supplier = context.Ingredient_Supplier.FirstOrDefault(f => f.Ing_Name.ToLower().Equals(Ing_Name.ToLower()) && f.Supplier.ToLower().Equals(Supplier.ToLower()));
-                return Ok(ingredient_supplier);
+                // Searching for record in the database
+                var response = await _repository.GetById(supplier, ing_name);
+                return response;
+                
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch (ArgumentNullException)
+            {
+                return NotFound("ERROR: Record you are searching was not found. Make sure the ingredient name and supplier are correct");
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/ingredient_supplier
         [HttpPost]
-        public ActionResult Post([FromBody] Ingredient_Supplier ingredient_supplier)
+        public async Task<ActionResult> Post([FromBody] Ingredient_Supplier ing_sup)
         {
+            ing_sup.Ing_Name = textInfo.ToTitleCase(ing_sup.Ing_Name.ToLower());
+
             try
             {
-                context.Ingredient_Supplier.Add(ingredient_supplier);
-                context.SaveChanges();
-                return CreatedAtRoute("GetIngredientSupplier", new { ING_NAME = ingredient_supplier.Ing_Name, SUPPLIER = ingredient_supplier.Supplier }, ingredient_supplier);
+                // Inserting record in the Ingredient_Supplier table
+                await _repository.Insert(ing_sup);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
@@ -68,32 +86,68 @@ namespace RestaurantAPI.Controllers
         [HttpPut]
         public ActionResult Put()
         {
-
-            return BadRequest("Elements in the Ingredient_Supplier table cannot be changed");
+            // We cannot modify entries in the Dish_Ingredient table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries in the Ingredient_Supplier table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/ingredient_supplier/5
-        [HttpDelete("{Ing_Name}/{Supplier}")]
-        public ActionResult Delete(string Ing_Name, string Supplier)
+        // DELETE api/ingredient_supplier/potato/michale's
+        [HttpDelete("{ing_name}/{supplier}")]
+        public async Task<ActionResult> Delete(string ing_name, string supplier)
         {
-            // Attempting to delete the element from the table in the DB
             try
             {
-                var ingredient_supplier = context.Ingredient_Supplier.FirstOrDefault(f => f.Ing_Name.ToLower().Equals(Ing_Name.ToLower()) && f.Supplier.ToLower().Equals(Supplier.ToLower()));
-                if (ingredient_supplier != null)
+                // Searching for record in the Ingredient_Supplier table
+                var response = await _repository.GetById(supplier, ing_name);
+
+                string format1 = "Record in the Ingredient Supplier table with key={0},{1} deleted succesfully\n";
+                string format2 = "Record in the Ingredient table with key={0} deleted because ingredients need suppliers and the only supplier of the ingredient was deleted\n";
+ 
+                // Getting number of supplier for that ingredient
+                if (await _repository.getNumberOfSuppliers(ing_name) == 1)
                 {
-                    context.Ingredient_Supplier.Remove(ingredient_supplier);
-                    context.SaveChanges();
-                    return Ok(new { Ing_Name, Supplier});
+                    // Deleting record from Ingredient_Supplier table and Ingredient Table
+                    // Due to foreign key constrains we can simply delete the ingredient from the Ingredient table
+                    await _ingredientRepository.DeleteByName(ing_name);
+                    return Ok(string.Format(format2, ing_name));
                 }
                 else
                 {
-                    return BadRequest("Error while trying to delete the element\n");
+                    // Deleting record from Ingredient_Supplier table
+                    await _repository.DeleteById(supplier, ing_name);
+                    return Ok(string.Format(format1, ing_name, supplier));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        [Route("getNumSuppliers/{ing_name}")]
+        [HttpGet]
+        public async Task<ActionResult> getNumSuppliers(string ing_name)
+        {
+            try
+            {
+                // There is no error and we are able to retrieve the number of suppliers
+                string format = "The number of suppliers for {0} is {1}\n";
+                return Ok(string.Format(format, ing_name, await _repository.getNumberOfSuppliers(ing_name)));
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Some unknown exception
+                return BadRequest("ERROR: Number of suppliers for that record could not be retrieved");
             }
         }
     }

@@ -1,99 +1,106 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
-using System;
-using System.Linq;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Customer_TransactionController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Customer_TransactionController(AppDBContext context)
+        private readonly Customer_TransactionRepository _repository;
+
+        public Customer_TransactionController(Customer_TransactionRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/customer_transaction
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Customer_Transaction>> Get()
         {
-            try
-            {
-                return Ok(context.Customer_Transaction.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Customer_Transaction table
+            return await _repository.GetAll();
         }
 
-        // GET api/customer_transaction/5/6
-        [HttpGet("{User_ID}/{Transaction_ID}", Name="GetCustomerTransaction")]
-        public ActionResult Get(int User_Id, int Transaction_ID)
+        // GET api/customer_transaction/5/10
+        [HttpGet("{user_id}/{tran_id}")]
+        public async Task<ActionResult<Customer_Transaction>> Get(int user_id, int tran_id)
         {
             try
             {
-                var customer_transaction = context.Customer_Transaction.FirstOrDefault(f => f.User_ID == User_Id && f.Transaction_ID == Transaction_ID);
-                return Ok(customer_transaction);
+                // Searching for record in the database
+                var response = await _repository.GetById(user_id, tran_id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/customer_transaction
         [HttpPost]
-        public ActionResult Post([FromBody] Customer_Transaction customer_transaction)
+        public async Task<ActionResult> Post([FromBody] Customer_Transaction customer_transaction)
         {
             try
             {
-                context.Customer_Transaction.Add(customer_transaction);
-                context.SaveChanges();
-                return CreatedAtRoute("GetCustomerTransaction", new { USER_ID = customer_transaction.User_ID, TRANSACTION_ID = customer_transaction.Transaction_ID }, customer_transaction);
+                // Inserting record in the Customer_Transaction table
+                await _repository.Insert(customer_transaction);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
-        // PUT  api/customer_transaction
+        // PUT api/customer_transaction
         [HttpPut]
         public ActionResult Put()
         {
-            return BadRequest("Elements in the Customer_Transaction table cannot be changed");
+            // We cannot add any modify entries in the Customer_Transaction table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries int the Customer_Transaction table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/customer_transaction/5/6
-        [HttpDelete("{User_ID}/{Transaction_ID}")]
-        public ActionResult Delete(int User_ID, int Transaction_ID)
+        // DELETE api/customer_transaction/5/10
+        [HttpDelete("{user_id}/{tran_id}")]
+        public async Task<ActionResult> Delete(int user_id, int tran_id)
         {
             try
             {
-                var customer_transaction = context.Customer_Transaction.FirstOrDefault(f => f.User_ID == User_ID && f.Transaction_ID == Transaction_ID);
-                if (customer_transaction != null)
-                {
-                    
-                    // Searching for transaction to delete (so it is not dangling)
-                    var transaction = context.Transaction.FirstOrDefault(f => f.Transaction_ID == Transaction_ID);
+                // Searching for record inn the Customer_Transaction table
+                var response = await _repository.GetById(user_id, tran_id);
 
-                    context.Customer_Transaction.Remove(customer_transaction);
-                    context.Transaction.Remove(transaction);
-                    context.SaveChanges();
-                    return Ok(new {User_ID, Transaction_ID, transaction});
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Deleting record from User table (it will cascade to the Customer table)
+                await _repository.DeleteById(user_id, tran_id);
+                string format = "Record with key=({0},{1}) deleted succesfully\n";
+                return Ok(string.Format(format, user_id, tran_id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

@@ -1,63 +1,83 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
+using System.Globalization;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Order_TableController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Order_TableController(AppDBContext context)
+        private readonly Order_TableRepository _repository;
+        private readonly OrderRepository _orderRepository;
+        
+        public Order_TableController(Order_TableRepository repository, OrderRepository orderRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         }
 
         // GET: api/order_table
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Order_Table>> Get()
         {
-            try
-            {
-                return Ok(context.Order_Table.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Order_Table table
+            return await _repository.GetAll();
         }
 
-        // GET api/order_table/5/6
-        [HttpGet("{Order_ID}/{TableNo}", Name="GetOrderTable")]
-        public ActionResult Get(int Order_ID, int TableNo)
+        // GET api/order_table/4/5
+        [HttpGet("{order_id}/{tableno}")]
+        public async Task<ActionResult<Order_Table>> Get(int order_id, int tableno)
         {
             try
             {
-                var order_table = context.Order_Table.FirstOrDefault(f => f.Order_ID == Order_ID && f.TableNo == TableNo);
-                return Ok(order_table);
+                // Searching for record in the database
+                var response = await _repository.GetById(order_id, tableno);
+                return response;
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/order_table
         [HttpPost]
-        public ActionResult Post([FromBody] Order_Table order_table)
+        public async Task<ActionResult> Post([FromBody] Order_Table order_table)
         {
             try
             {
-                context.Order_Table.Add(order_table);
-                context.SaveChanges();
-                return CreatedAtRoute("GetOrderTable", new { Order_ID = order_table.Order_ID, TableNo = order_table.TableNo }, order_table);
+                //If we are trying to insert and order that is already comming from a table
+                if (await _repository.orderExists(order_table.Order_ID))
+                {
+                    return BadRequest("ERROR: Error already exsits. An order can only come from one table");
+                }
+
+                // Inserting record in the Order_Table table
+                await _repository.Insert(order_table);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
@@ -65,42 +85,62 @@ namespace RestaurantAPI.Controllers
         [HttpPut]
         public ActionResult Put()
         {
-            return BadRequest("Elements in the Order_Table table cannot be changed");
+            // We cannot modify entries in the Dish_Ingredient table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries in the Order_Table table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/order_table/5/6
-        [HttpDelete("{Order_ID}/{TableNo}")]
-        public ActionResult Delete(int Order_ID, int TableNo)
+        // DELETE api/ingredient_supplier/potato/michale's
+        [HttpDelete("{order_id}/{tableno}")]
+        public async Task<ActionResult> Delete(int order_id, int tableno)
         {
             try
             {
-                var order_table = context.Order_Table.FirstOrDefault(f => f.Order_ID == Order_ID && f.TableNo == TableNo);
-                if (order_table != null)
-                {
-                    var num_of_orders_of_table = context.Order_Table.ToList().Count(f => f.Order_ID == Order_ID);
+                // Searching for record in the Order_Table table
+                var response = await _repository.GetById(order_id, tableno);
 
-                    if (num_of_orders_of_table <= 1)
-                    {
-                        var order = context.Order.FirstOrDefault(f => f.Order_ID == Order_ID);
-                        context.Order.Remove(order);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, TableNo, order });
-                    }
-                    else
-                    {
-                        context.Order_Table.Remove(order_table);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, TableNo });
-                    }
+                // Deleting record from Order table (it will cascade to In-Store_Order and Order_Table
+                await _orderRepository.DeleteById(order_id);
+                string format = "The Order with id={0} was deleted from the Order, In-Store_Order and Order_Table tables\n";
+                return Ok(string.Format(format, order_id));
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        // GET api/orderExists/4
+        [Route("orderExists/{order_id}")]
+        [HttpGet]
+        public async Task<ActionResult> getNumSuppliers(int order_id)
+        {
+            try
+            {
+                string format = "The order with id={0} is {1}\n";
+                if (await _repository.orderExists(order_id))
+                {
+                    return Ok(string.Format(format, order_id, "exists"));
                 }
                 else
                 {
-                    return BadRequest("Element that you are trying to delete does not exist\n");
+                    return Ok(string.Format(format, order_id, "does not exist"));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Some unknown exception
+                return BadRequest("ERROR: Number of suppliers for that record could not be retrieved");
             }
         }
     }

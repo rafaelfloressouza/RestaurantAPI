@@ -1,113 +1,150 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
+using System.Globalization;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class MenuController : Controller
     {
-        private readonly AppDBContext context;
 
-        public MenuController(AppDBContext context)
+        private readonly MenuRepository _repository;
+
+        public MenuController(MenuRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/menu
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Menu>> Get()
         {
-            try
-            {
-                return Ok(context.Menu.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Menu table
+            return await _repository.GetAll();
         }
 
-        // GET api/menu/Vegeterian 
-        [HttpGet("{Type}",Name ="GetMenu")]
-        public ActionResult Get(string Type)
+        // GET api/Menu/vegetarian
+        [HttpGet("{type}")]
+        public async Task<ActionResult<Menu>> Get(string type)
         {
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            type = textInfo.ToTitleCase(type.ToLower());
+
             try
             {
-                var menu = context.Menu.FirstOrDefault(f => f.Type.Equals(Type));
-                return Ok(menu);
+                // Searching for record in the database
+                var response = await _repository.GetByType(type);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/menu
         [HttpPost]
-        public ActionResult Post([FromBody] Menu menu)
+        public async Task<ActionResult> Post([FromBody] Menu menu)
         {
             try
             {
-                context.Menu.Add(menu);
-                context.SaveChanges();
-                return CreatedAtRoute("GetMenu", new { TYPE = menu.Type }, menu);
+                // Inserting record in the Manu table
+                await _repository.Insert(menu);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
-        // PUT api/menu/Vegeterian
-        [HttpPut("{Type}")]
-        public ActionResult Put(string Type, [FromBody] Menu menu)
+        // PUT api/menu/vegetarian
+        [HttpPut("{type}")]
+        public async Task<ActionResult> Put(string type, [FromBody] Menu menu)
         {
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            type = textInfo.ToTitleCase(type.ToLower());
+
+
+            // If id in body does not match id in URL
+            if (!type.Equals(menu.Type))
+            {
+                return BadRequest("type in URL has to match the type of the record to be updated\n");
+            }
+
             try
             {
-                if (menu.Type.Equals(Type))
+                // Searching for record in the database
+                var response = await _repository.GetByType(type);
+
+                if (response == null)
                 {
-                    context.Entry(menu).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetMenu", new { TYPE = menu.Type }, menu);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyByType(menu);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, type));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record scould not be updated\n");
             }
         }
 
-        // DELETE api/menu/5
-        [HttpDelete("{Type}")]
-        public ActionResult Delete(string Type)
+        // DELETE api/menu/vegetarian
+        [HttpDelete("{type}")]
+        public async Task<ActionResult> Delete(string type)
         {
+            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+            type = textInfo.ToTitleCase(type.ToLower());
+
             try
             {
-                var menu = context.Menu.FirstOrDefault(f => f.Type.Equals(Type));
-                if (menu != null)
-                {
-                    context.Menu.Remove(menu);
-                    context.SaveChanges();
-                    return Ok(Type);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record inn the Menu table
+                var response = await _repository.GetByType(type);
+
+                // Deleting record from Menu
+                await _repository.DeleteByType(type);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, type));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

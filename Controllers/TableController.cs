@@ -1,114 +1,140 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class TableController : Controller
     {
-        private readonly AppDBContext context;
 
-        public TableController(AppDBContext context)
+        private readonly TableRepository _repository;
+        
+        public TableController(TableRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/table
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Table>> Get()
         {
-            try
-            {
-                return Ok(context.Table.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Table table
+            return await _repository.GetAll();
         }
 
         // GET api/table/5
-        [HttpGet("{id}", Name ="GetTable")]
-        public ActionResult Get(int id)
+        [HttpGet("{tableno}")]
+        public async Task<ActionResult<Table>> Get(int tableno)
         {
             try
             {
-                var table = context.Table.FirstOrDefault(f => f.TableNo == id);
-                return Ok(table);
+                // Searching for record in the database
+                var response = await _repository.GetById(tableno);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/table
         [HttpPost]
-        public ActionResult Post([FromBody] Table table)
+        public async Task<ActionResult> Post([FromBody] Table table)
         {
             try
             {
-                context.Table.Add(table);
-                context.SaveChanges();
-                return CreatedAtRoute("GetTable", new { ID = table.TableNo }, table);
+                // Inserting record in the Table table
+                await _repository.Insert(table);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
         // PUT api/table/5
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Table table)
+        [HttpPut("{tableno}")]
+        public async Task<ActionResult> Put(int tableno, [FromBody] Table table)
         {
+            // If id in body does not match id in URL
+            if (tableno != table.TableNo)
+            {
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (table.TableNo == id)
+                // Searching for record in the database
+                var response = await _repository.GetById(tableno);
+
+                if (response == null)
                 {
-                    context.Entry(table).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetTable", new { ID = table.TableNo }, table);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyById(table);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, tableno));
                 }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
 
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record scould not be updated\n");
+            }
         }
 
         // DELETE api/table/5
-        [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        [HttpDelete("{tableno}")]
+        public async Task<ActionResult> Delete(int tableno)
         {
             try
             {
-                var table = context.Table.FirstOrDefault(f => f.TableNo == id);
-                if (table != null)
-                {
-                    context.Table.Remove(table);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record in the Table table
+                var response = await _repository.GetById(tableno);
+
+                // Deleting record from Table table
+                await _repository.DeleteById(tableno);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, tableno));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

@@ -1,94 +1,116 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
+using System.Globalization;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Dish_IngredientController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Dish_IngredientController(AppDBContext context)
+        private readonly Dish_IngredientRepository _repository;
+        private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+
+        public Dish_IngredientController(Dish_IngredientRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/dish_ingredient
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Dish_Ingredient>> Get()
         {
-            try
-            {
-                return Ok(context.Dish_Ingredient.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Customer table
+            return await _repository.GetAll();
         }
 
-        // GET api/dish_ingredient/5/6
-        [HttpGet("{Dish_ID}/{Ing_Name}", Name ="GetDishIngredient")]
-        public ActionResult Get(int Dish_ID, string Ing_Name)
+        // GET api/dish_ingredient/5/potato
+        [HttpGet("{dish_id}/{ing_name}")]
+        public async Task<ActionResult<Dish_Ingredient>> Get(int dish_id, string ing_name)
         {
+            ing_name = textInfo.ToTitleCase(ing_name.ToLower());
+
             try
             {
-                var dish_ingredient = context.Dish_Ingredient.FirstOrDefault(f => f.Dish_ID == Dish_ID && f.Ing_Name.Equals(Ing_Name));
-                return Ok(dish_ingredient);
+                // Searching for record in the database
+                var response = await _repository.GetById(dish_id, ing_name);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exceptions
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/dish_ingredient
         [HttpPost]
-        public ActionResult Post([FromBody] Dish_Ingredient dish_ingredient)
+        public async Task<ActionResult> Post([FromBody] Dish_Ingredient dish_ingredient)
         {
+            dish_ingredient.Ing_Name = textInfo.ToTitleCase(dish_ingredient.Ing_Name.ToLower());
+            
             try
             {
-                context.Dish_Ingredient.Add(dish_ingredient);
-                context.SaveChanges();
-                return CreatedAtRoute("GetDishIngredient", new { DISH_ID = dish_ingredient.Dish_ID, ING_NAME = dish_ingredient.Ing_Name}, dish_ingredient);
+                // Inserting record in the Dish_Ingredient table
+                await _repository.Insert(dish_ingredient);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
             }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
+            }
+
         }
 
         // PUT api/dish_ingredient
         [HttpPut]
         public ActionResult Put()
         {
-            return BadRequest("Elements in the Dish_Ingredient table cannot be changed.");
+            // We cannot add any modify entries in the Dish_Ingredient table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries int the Ingredient_Table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/dish_ingredient/5/6
-        [HttpDelete("{Dish_ID}/{Ing_Name}")]
-        public ActionResult Delete(int Dish_ID, string Ing_Name)
+        // DELETE api/dish_ingredient/5/potato
+        [HttpDelete("{order_id}/{ing_name}")]
+        public async Task<ActionResult> Delete(int order_id, string ing_name)
         {
+            ing_name = textInfo.ToTitleCase(ing_name.ToLower());
+
             try
             {
-                var dish_ingredient = context.Dish_Ingredient.FirstOrDefault(f => f.Dish_ID == Dish_ID && f.Ing_Name.Equals(Ing_Name));
-                if (dish_ingredient != null)
-                {
-                    context.Dish_Ingredient.Remove(dish_ingredient);
-                    context.SaveChanges();
-                    return Ok(new { Dish_ID, Ing_Name});
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record inn the Dish_Ingredient table
+                var response = await _repository.GetById(order_id, ing_name);
+
+                // Deleting record from Dish_Ingredient table
+                await _repository.DeleteById(order_id, ing_name);
+                string format = "Record with key={0},{1} deleted succesfully\n";
+                return Ok(string.Format(format, order_id, ing_name));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

@@ -1,111 +1,145 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
-using System.Linq;
-using System;
-using Microsoft.EntityFrameworkCore;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class ReviewController : Controller
     {
-        private readonly AppDBContext context;
 
-        public ReviewController(AppDBContext context)
+        private readonly ReviewRepository _repository;
+
+        public ReviewController(ReviewRepository repository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // GET: api/review
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Review>> Get()
+        {
+            // Getting all records from the Review table
+            return await _repository.GetAll();
+        }
+
+        // GET api/review/5/6
+        [HttpGet("{user_id}/{review_id}")]
+        public async Task<ActionResult<Review>> Get(int user_id, int review_id)
         {
             try
             {
-                return Ok(context.Review.ToList());
+                // Searching for record in the database
+                var response = await _repository.GetById(user_id, review_id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
-        // GET api/review/5
-        [HttpGet("{id}", Name ="GetReview")]
-        public ActionResult Get(int id)
-        {
-            try
-            {
-                var review = context.Review.FirstOrDefault(f => f.Review_ID == id);
-                return Ok(review);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        // POST api/values
+        // POST api/review
         [HttpPost]
-        public ActionResult Post([FromBody] Review review)
+        public async Task<ActionResult> Post([FromBody] Review review)
         {
             try
             {
-                context.Review.Add(review);
-                context.SaveChanges();
-                return CreatedAtRoute("GetReview", new { ID = review.Review_ID }, review);
+                // Inserting record in the Review table
+                await _repository.Insert(review);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
-        // PUT api/review/5
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Review review)
+        // PUT api/review/5/6
+        [HttpPut("{user_id}/{review_id}")]
+        public async Task<ActionResult> Put(int user_id, int review_id, [FromBody] Review review)
         {
+            // If id in body does not match id in URL
+            if (user_id != review.User_ID)
+            {
+                return BadRequest("user_id in URL has to match the user_id of the record to be updated\n");
+            }
+
+            if (review_id != review.Review_ID)
+            {
+                return BadRequest("review_id in URL has to match the review_id of the record to be updated\n");
+            }
+
             try
             {
-                if (review.Review_ID == id)
+                // Searching for record in the database
+                var response = await _repository.GetById(user_id, review_id);
+
+                if (response == null)
                 {
-                    context.Entry(review).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetReview", new { ID = review.Review_ID }, review);
+                    // If record does not exists
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest();
+                    // If record was found modify it
+                    await _repository.ModifyById(review);
+                    string format = "The record with key={0},{1} was updated succesfully\n";
+                    return Ok(String.Format(format, user_id, review_id));
                 }
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record scould not be updated\n");
             }
         }
 
-        // DELETE api/review/5
-        [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        // DELETE api/review/5/6
+        [HttpDelete("{user_id}/{review_id}")]
+        public async Task<ActionResult> Delete(int user_id, int review_id)
         {
             try
             {
-                var review = context.Review.FirstOrDefault(f => f.Review_ID == id);
-                if (review != null)
-                {
-                    context.Review.Remove(review);
-                    context.SaveChanges();
-                    return Ok(id);
-                }
-                else
-                {
-                    return BadRequest();
-                }
+                // Searching for record inn the Review table
+                var response = await _repository.GetById(user_id, review_id);
+
+                // Deleting record from Review table
+                await _repository.DeleteById(user_id, review_id);
+                string format = "Record with key={0},{1} deleted succesfully\n";
+                return Ok(string.Format(format, user_id, review_id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

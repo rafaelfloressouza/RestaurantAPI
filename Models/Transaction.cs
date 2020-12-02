@@ -7,7 +7,7 @@ namespace RestaurantAPI.Models
     {
         [Key]
         public int Transaction_ID { get; set; }
-        public double Amount { get; set; }
+        public decimal Amount { get; set; }
         public DateTime Date_Time { get; set; }
     }
 }

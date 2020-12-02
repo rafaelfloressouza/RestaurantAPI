@@ -1,66 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Order_DishController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Order_DishController(AppDBContext context)
+        private readonly Order_DishRepository _repository;
+        private readonly OrderRepository _orderRepository;
+    
+        public Order_DishController(Order_DishRepository repository, OrderRepository orderRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         }
 
         // GET: api/order_dish
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Order_Dish>> Get()
         {
-            try
-            {
-                return Ok(context.Order_Dish.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // Getting all records from the Order_Dish table
+            return await _repository.GetAll();
         }
 
-        // GET api/order_dish/5/6
-        [HttpGet("{Order_ID}/{Dish_ID}", Name ="GetOrderDish")]
-        public ActionResult Get(int Order_ID, int Dish_ID)
+        // GET api/order_dish/3/4
+        [HttpGet("{order_id}/{dish_id}")]
+        public async Task<ActionResult<Order_Dish>> Get(int order_id, int dish_id)
         {
             try
             {
-                var order_dish = context.Order_Dish.FirstOrDefault(f => f.Order_ID == Order_ID && f.Dish_ID == Dish_ID);
-                return Ok(order_dish);
+                // Searching for record in the database
+                var response = await _repository.GetById(order_id, dish_id);
+                return response;
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/order_dish
         [HttpPost]
-        public ActionResult Post([FromBody] Order_Dish order_dish)
+        public async Task<ActionResult> Post([FromBody] Order_Dish order_dish)
         {
             try
             {
-                context.Order_Dish.Add(order_dish);
-                context.SaveChanges();
-                return CreatedAtRoute("GetOrderDish", new { Order_ID = order_dish.Order_ID, Dish_ID = order_dish.Dish_ID}, order_dish);
+                // Inserting record in the Order_Dish table
+                await _repository.Insert(order_dish);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
@@ -68,42 +77,68 @@ namespace RestaurantAPI.Controllers
         [HttpPut]
         public ActionResult Put()
         {
-            return BadRequest("Elements in the Order_Dish table cannot be changed");
+            // We cannot modify entries in the Order_Dish table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries in the Order_Dish table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/order_dish/5/6
-        [HttpDelete("{Order_ID}/{Dish_ID}")]
-        public ActionResult Delete(int Order_ID, int Dish_ID)
+        // DELETE api/order_dish/4/5
+        [HttpDelete("{order_id}/{dish_id}")]
+        public async Task<ActionResult> Delete(int order_id, int dish_id)
         {
             try
             {
-                var order_dish = context.Order_Dish.FirstOrDefault(f => f.Order_ID == Order_ID && f.Dish_ID == Dish_ID);
-                if (order_dish != null)
-                {
-                    var num_of_dishes_in_order = context.Order_Dish.ToList().Count(f => f.Order_ID == Order_ID);
+                // Searching for record in the Order_Dish table
+                var response = await _repository.GetById(order_id, dish_id);
 
-                    if (num_of_dishes_in_order <= 1)
-                    {
-                        var order = context.Order.FirstOrDefault(f => f.Order_ID == Order_ID);
-                        context.Order.Remove(order);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, Dish_ID, order });
-                    }
-                    else
-                    {
-                        context.Order_Dish.Remove(order_dish);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, Dish_ID });
-                    }
+                string format1 = "Record in the Order_Dish table with key=(Dish_ID={0},Order_ID={1}) deleted succesfully\n";
+                string format2 = "Record in the Order table with Order_ID={0} deleted because orders should contain at least one dish (the last dish was removed)\n";
+
+                // Getting number of dishes in the order for that ingredient
+                if (await _repository.getNumberOfDishes(order_id) == 1)
+                {
+                    // Deleting record from Order_Dish table and Order
+                    // Due to foreign key constrains we can simply delete the order from the Order table
+                    await _orderRepository.DeleteById(order_id);
+                    return Ok(string.Format(format2, order_id));
                 }
                 else
                 {
-                    return BadRequest("Element that you are trying to delete does not exist\n");
+                    // Deleting record from Order_Dish table
+                    await _repository.DeleteById(order_id, dish_id);
+                    return Ok(string.Format(format1, dish_id, order_id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        [Route("getNumDishes/{order_id}")]
+        [HttpGet]
+        public async Task<ActionResult> getNumDishes(int order_id)
+        {
+            try
+            {
+                // There is no error and we are able to retrieve the number of dishes for the specified order
+                string format = "The number of dishes in order={0} is {1}\n";
+                return Ok(string.Format(format, order_id, await _repository.getNumberOfDishes(order_id)));
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Some unknown exception
+                return BadRequest("ERROR: Number of dishes for that record could not be retrieved");
             }
         }
     }

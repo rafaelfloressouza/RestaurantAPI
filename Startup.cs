@@ -31,6 +31,15 @@ namespace RestaurantAPI
             services.AddScoped<ManagerRepository>();
             services.AddScoped<WaiterRepository>();
             services.AddScoped<IngredientRepository>();
+            services.AddScoped<OrderRepository>();
+            services.AddScoped<TransactionRepository>();
+            services.AddScoped<MenuRepository>();
+            services.AddScoped<ReviewRepository>();
+            services.AddScoped<TableRepository>();
+            services.AddScoped<Dish_IngredientRepository>();
+            services.AddScoped<Ingredient_SupplierRepository>();
+            services.AddScoped<Customer_TransactionRepository>();
+            services.AddScoped<Order_DishRepository>();
             services.AddDbContext<AppDBContext>(options => options.UseNpgsql(Configuration.GetConnectionString("Connection")));
         }
 
