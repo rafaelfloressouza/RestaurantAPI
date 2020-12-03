@@ -1,64 +1,76 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
+using System.Threading.Tasks;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class Order_TransactionController : Controller
     {
-        private readonly AppDBContext context;
 
-        public Order_TransactionController(AppDBContext context)
+        private readonly Order_TransactionRepository _repository;
+        private readonly TransactionRepository _transactionRepository;
+
+        public Order_TransactionController(Order_TransactionRepository repository, TransactionRepository transactionRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _transactionRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
         }
 
         // GET: api/order_transaction
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<Order_Transaction>> Get()
         {
-            try
-            {
-                return Ok(context.Order_Transaction.ToList());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-
+            // Getting all records from the Order_Transaction table
+            return await _repository.GetAll();
         }
 
-        // GET api/order_transaction/5/6
-        [HttpGet("{Order_ID}/{Transaction_ID}", Name ="GetOrderTransaction")]
-        public ActionResult Get(int Order_ID, int Transaction_ID)
+        // GET api/order_transaction/4/5
+        [HttpGet("{order_id}/{tran_id}")]
+        public async Task<ActionResult<Order_Transaction>> Get(int order_id, int tran_id)
         {
             try
             {
-                var order_transaction = context.Order_Transaction.FirstOrDefault(f => f.Order_ID == Order_ID && f.Transaction_ID == Transaction_ID);
-                return Ok(order_transaction);
+                // Searching for record in the database
+                var response = await _repository.GetById(order_id, tran_id);
+                return response;
+
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
         // POST api/order_transaction
         [HttpPost]
-        public ActionResult Post([FromBody] Order_Transaction order_transaction)
+        public async Task<ActionResult> Post([FromBody] Order_Transaction order_transaction)
         {
             try
             {
-                context.Order_Transaction.Add(order_transaction);
-                context.SaveChanges();
-                return CreatedAtRoute("GetOrderTransaction", new { Order_ID = order_transaction.Order_ID, Transaction_ID = order_transaction.Transaction_ID }, order_transaction);
+                // Inserting record in the Order_Table table
+                await _repository.Insert(order_transaction);
+                return Ok("Record inserted successfully\n");
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record was not inserted\n");
             }
         }
 
@@ -66,42 +78,68 @@ namespace RestaurantAPI.Controllers
         [HttpPut]
         public ActionResult Put()
         {
-            return BadRequest("Elements in the Order_Transaction table cannot be changed");
+            // We cannot modify entries in the order_transaction table. It has to be done directly through deletes and posts
+            return BadRequest("ERROR: You cannot modify entries in the Order_Transaction table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/order_transaction/5/6
-        [HttpDelete("{Order_ID}/{Transaction_ID}")]
-        public ActionResult Delete(int Order_ID, int Transaction_ID)
+        // DELETE api/order_transaction/3/4
+        [HttpDelete("{order_id}/{tran_id}")]
+        public async Task<ActionResult> Delete(int order_id, int tran_id)
         {
             try
             {
-                var order_transaction = context.Order_Transaction.FirstOrDefault(f => f.Order_ID == Order_ID && f.Transaction_ID == Transaction_ID);
-                if (order_transaction != null)
-                {
-                    var num_of_orders_in_transaction = context.Order_Transaction.ToList().Count(f => f.Transaction_ID == Transaction_ID);
+                // Searching for record in the Order_Transaction table
+                var response = await _repository.GetById(order_id, tran_id);
 
-                    if (num_of_orders_in_transaction <= 1)
-                    {
-                        var transaction = context.Transaction.FirstOrDefault(f => f.Transaction_ID == Transaction_ID);
-                        context.Transaction.Remove(transaction);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, Transaction_ID, transaction });
-                    }
-                    else
-                    {
-                        context.Order_Transaction.Remove(order_transaction);
-                        context.SaveChanges();
-                        return Ok(new { Order_ID, Transaction_ID});
-                    }
+                string format1 = "The Transaction with id={0} was deleted from the Transaction and Order_Transaction tables\n";
+                string format2 = "The record with key=(Order_ID={0},Transaction_ID={1}) was deleted from the Order_Transaction table\n";
+
+                // There is a single order in the transaction (erase the transaction)
+                if (await _repository.getNumOrders(tran_id) == 1)
+                {
+                    // Deleting record from Transaction table (it will cascade to Order_Transaction Table)
+                    await _transactionRepository.DeleteById(tran_id);
+                    return Ok(string.Format(format1, tran_id));
                 }
                 else
                 {
-                    return BadRequest("Element that you are trying to delete does not exist\n");
+                    // There is more than one record
+                    await _repository.DeleteById(order_id, tran_id);
+                    return Ok(string.Format(format2, order_id, tran_id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        // GET api/order_transaction/getNumOrders/4
+        [Route("getNumOrders/{tran_id}")]
+        [HttpGet]
+        public async Task<ActionResult> getNumSuppliers(int tran_id)
+        {
+            try
+            {
+                // Getting the number of order in the specified transaction
+                string format = "The number of orders in transaction id={0} is {1}\n";
+                return Ok(string.Format(format, tran_id, await _repository.getNumOrders(tran_id)));
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Some unknown exception
+                return BadRequest("ERROR: Number of orders for that record could not be retrieved");
             }
         }
     }

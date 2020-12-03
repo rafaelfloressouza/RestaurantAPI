@@ -1,116 +1,128 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RestaurantAPI.Models;
-using RestaurantAPI.Context;
+using RestaurantAPI.Data;
 
 namespace RestaurantAPI.Controllers
 {
     [Route("api/[controller]")]
     public class In_Store_OrderController : Controller
     {
+        private readonly In_Store_OrderRepository _repository;
+        private readonly OrderRepository _orderRepository;
 
-        private readonly AppDBContext context;
-
-        public In_Store_OrderController(AppDBContext context)
+        public In_Store_OrderController(In_Store_OrderRepository repository, OrderRepository orderRepository)
         {
-            this.context = context;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         }
 
         // GET: api/in_store_order
         [HttpGet]
-        public ActionResult Get()
+        public async Task<List<In_Store_Order>> Get()
+        {
+            // Get all records from the In_Store_Order table
+            return await _repository.GetAll();
+        }
+
+
+        // GET api/in_store_order/5
+        [HttpGet("{order_id}")]
+        public async Task<ActionResult<In_Store_Order>> Get(int order_id)
         {
             try
             {
-                return Ok(context.In_Store_Order.ToList());
+                // Searching for record
+                var response = await _repository.GetById(order_id);
+                return response;
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Posgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return NotFound("Record you are searching for does not exist");
             }
         }
 
-        // GET api/in_store_order/5
-        [HttpGet("{id}", Name ="GetInStoreOrder")]
-        public ActionResult Get(int id)
-        {
-            try
-            {
-                var in_store_order = context.In_Store_Order.FirstOrDefault(f => f.Order_ID == id);
-                return Ok(in_store_order);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
 
         // POST api/in_store_order
         [HttpPost]
-        public ActionResult Post([FromBody] In_Store_Order in_store_order)
+        public ActionResult Post()
         {
-            try
-            {
-                context.In_Store_Order.Add(in_store_order);
-                context.SaveChanges();
-                return CreatedAtRoute("GetInStoreOrder", new { ID = in_store_order.Order_ID }, in_store_order);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            // We cannot add any entry directly to the In_Store_Order table. It has to be done directly through the Order table
+            return BadRequest("ERROR: You cannot insert entries into the In_Store_Order table. Try inserting a new Order\n");
         }
 
+
         // PUT api/in_store_order/5
-        [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] In_Store_Order in_store_order)
+        [HttpPut("{order_id}")]
+        public async Task<ActionResult> Put(int order_id, [FromBody] In_Store_Order in_store_order)
         {
+            if (order_id != in_store_order.Order_ID)
+            {
+                // If id from body and id from URL don't match
+                return BadRequest("id in URL has to match the id of the record to be updated\n");
+            }
+
             try
             {
-                if (in_store_order.Order_ID == id)
+                // Searching for reacoord
+                var response = await _repository.GetById(order_id);
+
+                if (response == null)
                 {
-                    context.Entry(in_store_order).State = EntityState.Modified;
-                    context.SaveChanges();
-                    return CreatedAtRoute("GetInStoreOrder", new { ID = in_store_order.Order_ID }, in_store_order);
+                    // If record does not exist
+                    return NotFound("Record was not found\n");
                 }
                 else
                 {
-                    return BadRequest("ERROR: Make sure the pased id matches the id of the element you want to modify\n");
+                    // Record exists, then modify it
+                    await _repository.ModifyById(in_store_order);
+                    string format = "The record with key={0} was updated succesfully\n";
+                    return Ok(String.Format(format, order_id));
                 }
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw some exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
         // DELETE api/in_store_order/5
-        [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        [HttpDelete("{order_id}")]
+        public async Task<ActionResult> Delete(int order_id)
         {
             try
             {
-                var in_store_order = context.In_Store_Order.FirstOrDefault(f => f.Order_ID == id);
-                if (in_store_order != null)
-                {
-                    // Searching for Order
-                    var order = context.Order.FirstOrDefault(f => f.Order_ID == id);
-                    context.Order.Remove(order);
-                    context.SaveChanges();
-                    return Ok(new {in_store_order, order});
-                }
-                else
-                {
-                    return BadRequest("The element you are trying to delete does not exist\n");
-                }
+                // Search if the record exists
+                var response = await _repository.GetById(order_id);
+
+                // We delete the order (it will cascade to the in_store_order)
+                await _orderRepository.DeleteById(order_id);
+                string format = "Record with key={0} deleted succesfully\n";
+                return Ok(string.Format(format, order_id));
             }
-            catch (Exception ex)
+            catch (Npgsql.PostgresException ex)
             {
-                return BadRequest(ex.Message);
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record could not be deleted\n");
             }
         }
     }

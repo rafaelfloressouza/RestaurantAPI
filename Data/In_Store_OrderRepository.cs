@@ -4,27 +4,27 @@ using Microsoft.Extensions.Configuration;
 using RestaurantAPI.Models;
 using Npgsql;
 using NpgsqlTypes;
-using System;
 
 namespace RestaurantAPI.Data
 {
-    public class Order_TableRepository
+    public class In_Store_OrderRepository
     {
         private readonly string _connectionString;
 
-        public Order_TableRepository(IConfiguration configuration)
+        public In_Store_OrderRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("Connection");
         }
 
-        public async Task<List<Order_Table>> GetAll()
+
+        public async Task<List<In_Store_Order>> GetAll()
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOrder_Table_GetAll\"", sql))
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spIn_Store_Order_GetAll\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    var response = new List<Order_Table>();
+                    var response = new List<In_Store_Order>();
                     await sql.OpenAsync();
 
                     using (var reader = await cmd.ExecuteReaderAsync())
@@ -40,27 +40,25 @@ namespace RestaurantAPI.Data
             }
         }
 
-        private Order_Table MapToValue(NpgsqlDataReader reader)
+        private In_Store_Order MapToValue(NpgsqlDataReader reader)
         {
-            return new Order_Table()
+            return new In_Store_Order()
             {
                 Order_ID = (int)reader["Order_ID"],
-                TableNo = (int)reader["TableNo"],
+                waiter_ID = (int)reader["waiter_ID"],
             };
         }
 
-        public async Task<Order_Table> GetById(int order_id, int tableno)
+        public async Task<In_Store_Order> GetById(int order_id)
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOrder_Table_GetById\"", sql))
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spIn_Store_Order_GetById\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter("order_id", NpgsqlDbType.Integer));
-                    cmd.Parameters.Add(new NpgsqlParameter("tableno", NpgsqlDbType.Integer));
                     cmd.Parameters[0].Value = order_id;
-                    cmd.Parameters[1].Value = tableno;
-                    Order_Table response = null;
+                    In_Store_Order response = null;
                     await sql.OpenAsync();
 
                     using (var reader = await cmd.ExecuteReaderAsync())
@@ -76,17 +74,18 @@ namespace RestaurantAPI.Data
             }
         }
 
-        public async Task Insert(Order_Table order_table)
+
+        public async Task Insert(In_Store_Order in_store_order)
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOrder_Table_InsertValue\"", sql))
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOnline_Order_InsertValue\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter("order_id", NpgsqlDbType.Integer));
-                    cmd.Parameters.Add(new NpgsqlParameter("tableno", NpgsqlDbType.Integer));
-                    cmd.Parameters[0].Value = order_table.Order_ID;
-                    cmd.Parameters[1].Value = order_table.TableNo;
+                    cmd.Parameters.Add(new NpgsqlParameter("waiter_id", NpgsqlDbType.Integer));
+                    cmd.Parameters[0].Value = in_store_order.Order_ID;
+                    cmd.Parameters[1].Value = in_store_order.waiter_ID;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
@@ -94,17 +93,18 @@ namespace RestaurantAPI.Data
             }
         }
 
-        public async Task DeleteById(int order_id, int tableno)
+
+        public async Task ModifyById(In_Store_Order in_store_order)
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOrder_Table_DeleteById\"", sql))
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spIn_Store_Order_ModifyById\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter("order_id", NpgsqlDbType.Integer));
-                    cmd.Parameters.Add(new NpgsqlParameter("table_no", NpgsqlDbType.Integer));
-                    cmd.Parameters[0].Value = order_id;
-                    cmd.Parameters[1].Value = tableno;
+                    cmd.Parameters.Add(new NpgsqlParameter("waiter_id", NpgsqlDbType.Integer));
+                    cmd.Parameters[0].Value = in_store_order.Order_ID;
+                    cmd.Parameters[1].Value = in_store_order.waiter_ID;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
@@ -112,20 +112,19 @@ namespace RestaurantAPI.Data
             }
         }
 
-        public async Task<bool> orderExists(int order_id)
+
+        public async Task DeleteById(int order_id)
         {
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spOrder_Table_OrderExists\"", sql))
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spIn_Store_Order_DeleteById\"", sql))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add(new NpgsqlParameter("order_id", NpgsqlDbType.Integer) { Direction = System.Data.ParameterDirection.Input });
+                    cmd.Parameters.Add(new NpgsqlParameter("order_id", NpgsqlDbType.Integer));
                     cmd.Parameters[0].Value = order_id;
-                    cmd.Parameters.Add(new NpgsqlParameter("exsits", NpgsqlDbType.Boolean) { Direction = System.Data.ParameterDirection.Output });
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
-                    if (Convert.IsDBNull(cmd.Parameters[1].Value))return false;
-                    else return true;   
+                    return;
                 }
             }
         }

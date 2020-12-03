@@ -61,7 +61,7 @@ namespace RestaurantAPI.Controllers
                 //If we are trying to insert and order that is already comming from a table
                 if (await _repository.orderExists(order_table.Order_ID))
                 {
-                    return BadRequest("ERROR: Error already exsits. An order can only come from one table");
+                    return BadRequest("ERROR: That order is already linked to a table. An order can only come from one table");
                 }
 
                 // Inserting record in the Order_Table table
@@ -89,7 +89,7 @@ namespace RestaurantAPI.Controllers
             return BadRequest("ERROR: You cannot modify entries in the Order_Table table. Try using POST and DELETE instead.\n");
         }
 
-        // DELETE api/ingredient_supplier/potato/michale's
+        // DELETE api/order_table/2/4
         [HttpDelete("{order_id}/{tableno}")]
         public async Task<ActionResult> Delete(int order_id, int tableno)
         {
@@ -115,14 +115,14 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // GET api/orderExists/4
+        // GET api/order_table/orderExists/4
         [Route("orderExists/{order_id}")]
         [HttpGet]
         public async Task<ActionResult> getNumSuppliers(int order_id)
         {
             try
             {
-                string format = "The order with id={0} is {1}\n";
+                string format = "The order with id={0} {1}\n";
                 if (await _repository.orderExists(order_id))
                 {
                     return Ok(string.Format(format, order_id, "exists"));
@@ -140,7 +140,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Some unknown exception
-                return BadRequest("ERROR: Number of suppliers for that record could not be retrieved");
+                return BadRequest("ERROR: Number of orders for that record could not be retrieved");
             }
         }
     }

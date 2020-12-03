@@ -34,7 +34,7 @@ namespace RestaurantAPI.Controllers
         {
             try
             {
-                // Searching dor record
+                // Searching for record
                 var response = await _repository.GetById(id);
                 return response;
             }

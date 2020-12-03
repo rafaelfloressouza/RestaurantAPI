@@ -40,6 +40,10 @@ namespace RestaurantAPI
             services.AddScoped<Ingredient_SupplierRepository>();
             services.AddScoped<Customer_TransactionRepository>();
             services.AddScoped<Order_DishRepository>();
+            services.AddScoped<Order_TableRepository>();
+            services.AddScoped<Order_TransactionRepository>();
+            services.AddScoped<Online_OrderRepository>();
+            services.AddScoped<In_Store_OrderRepository>();
             services.AddDbContext<AppDBContext>(options => options.UseNpgsql(Configuration.GetConnectionString("Connection")));
         }
 
