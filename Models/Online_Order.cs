@@ -3,10 +3,10 @@
 
 namespace RestaurantAPI.Models
 {
-    public class Online_Order
+    public class Online_Order                       // Entity
     {
-        [Key]
-        public int Order_ID { get; set; }
-        public string Application { get; set; }       
+        [Required][Key]
+        public int Order_ID { get; set; }           // Unique order identifier
+        public string Application { get; set; }     // App from which the order was requested 
     }
 }

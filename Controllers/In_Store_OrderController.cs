@@ -72,7 +72,7 @@ namespace RestaurantAPI.Controllers
 
             try
             {
-                // Searching for reacoord
+                // Searching for record
                 var response = await _repository.GetById(order_id);
 
                 if (response == null)

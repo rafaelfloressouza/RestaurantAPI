@@ -2,14 +2,13 @@
 
 namespace RestaurantAPI.Models
 {
-    public class Table
+    public class Table                              // Entity
     {
+        [Required][Key]
+        public int TableNo { get; set; }            // Unique table identifier
+        public string Location { get; set; }        // Tabble location inside the restaurant
+        public bool isOccupied { get; set; }        // Wheter tale is free
         [Required]
-        [Key]
-        public int TableNo { get; set; }
-        public string Location { get; set; }
-        public bool isOccupied { get; set; }
-        [Required]
-        public int waiter_ID { get; set; }
+        public int waiter_ID { get; set; }          // Unique waiter identifer who is assigned the table
     }
 }

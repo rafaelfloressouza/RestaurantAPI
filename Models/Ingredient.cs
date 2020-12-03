@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAPI.Models
 {
-    public class Ingredient
+    public class Ingredient                         // Entity
     {
-        [Key]
-        public string Name{ get; set; }
-        public decimal Price { get; set; }
-        public DateTime Exp_Date { get; set; }
-        public decimal Quantity { get; set; }
+        [Required][Key]
+        public string Name{ get; set; }             // Unique Ingredient identifier
+        public decimal Price { get; set; }          // Price of the ingredient
+        public DateTime Exp_Date { get; set; }      // Experation date of the ingredient
+        public decimal Quantity { get; set; }       // Quantity of ingredient in KG
     }
 }

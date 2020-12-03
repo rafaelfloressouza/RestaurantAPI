@@ -2,12 +2,11 @@
 
 namespace RestaurantAPI.Models
 {
-    public class Waiter
+    public class Waiter                         // Entity
     {
-        [Required]
-        [Key]
-        public int User_ID { get; set;}
-        public decimal Hours { get; set; }
-        public string Type { get; set; }
+        [Required][Key]
+        public int User_ID { get; set;}         // Unique waiter identifier
+        public decimal Hours { get; set; }      // Hours worked per week
+        public string Type { get; set; }        // Full time or part time
     }
 }

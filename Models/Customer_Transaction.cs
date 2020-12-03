@@ -4,13 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RestaurantAPI.Models
 {
-    public class Customer_Transaction
+    public class Customer_Transaction               // Many to Many Relationship
     {
-        [Key]
-        [Column(Order=0)]
-        public int User_ID { get; set; }
-        [Key]
-        [Column(Order = 1)]
-        public int Transaction_ID { get; set; }
+        [Required][Key][Column(Order=0)]
+        public int User_ID { get; set; }            // Unique Customer Identifier
+        [Required][Key][Column(Order = 1)]
+        public int Transaction_ID { get; set; }     // Unique Transaction Identifier
     }
 }

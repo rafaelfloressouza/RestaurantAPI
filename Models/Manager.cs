@@ -1,12 +1,11 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAPI.Models
 {
-    public class Manager
+    public class Manager                    // Entity
     {
-        [Key]
-        public int User_ID { get; set; }
-        public string Area { get; set; }    
+        [Required][Key]
+        public int User_ID { get; set; }    // Unique manager identifier
+        public string Area { get; set; }    // Area of restaurant this person manages
     }
 }

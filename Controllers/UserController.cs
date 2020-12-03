@@ -206,5 +206,23 @@ namespace RAPI2.Controllers
                 return BadRequest("Error: Record could not be deleted\n");
             }
         }
+
+        // api/user
+        [Route("getLastInserted")]
+        [HttpGet]
+        public async Task<ActionResult> getLastInserted()
+        {
+            try
+            {
+                // Getting the id of the last inserted user
+                string format = "The last inserted user has id={0}\n";
+                return Ok(string.Format(format, await _repository.getLastInsertedID()));
+            }
+            catch
+            {
+                // Some unknown error occurred
+                return BadRequest("ERROR: Unable to get the id of the last inserted user\n");
+            }
+        }
     }
 }

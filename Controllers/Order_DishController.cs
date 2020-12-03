@@ -13,11 +13,13 @@ namespace RestaurantAPI.Controllers
 
         private readonly Order_DishRepository _repository;
         private readonly OrderRepository _orderRepository;
+        private readonly TransactionRepository _transationRepository;
     
-        public Order_DishController(Order_DishRepository repository, OrderRepository orderRepository)
+        public Order_DishController(Order_DishRepository repository, OrderRepository orderRepository, TransactionRepository transactionRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+            _transationRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
         }
 
         // GET: api/order_dish
@@ -92,13 +94,22 @@ namespace RestaurantAPI.Controllers
 
                 string format1 = "Record in the Order_Dish table with key=(Dish_ID={0},Order_ID={1}) deleted succesfully\n";
                 string format2 = "Record in the Order table with Order_ID={0} deleted because orders should contain at least one dish (the last dish was removed)\n";
-
+                
                 // Getting number of dishes in the order for that ingredient
                 if (await _repository.getNumberOfDishes(order_id) == 1)
                 {
                     // Deleting record from Order_Dish table and Order
-                    // Due to foreign key constrains we can simply delete the order from the Order table
+                    // Due to foreign key constraints we can simply delete the order from the Order table
+                    var order_response = await _orderRepository.GetById(order_id);
                     await _orderRepository.DeleteById(order_id);
+
+                    // In case we delete the last order contained in a transaction, we delete the transaction as well
+                    if(await _orderRepository.numOrderByTransaction(order_response.Transaction_ID) == 1)
+                    {
+                        await _transationRepository.DeleteById(order_response.Transaction_ID);
+                        return Ok(string.Format("Records in the Order, Order_Dish due to database constraints\n"));
+                    }
+
                     return Ok(string.Format(format2, order_id));
                 }
                 else

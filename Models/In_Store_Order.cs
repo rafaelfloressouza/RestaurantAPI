@@ -2,10 +2,11 @@
 
 namespace RestaurantAPI.Models
 {
-    public class In_Store_Order
+    public class In_Store_Order                 // Entity
     {
-        [Key]
-        public int Order_ID { get; set; }
-        public int waiter_ID { get; set; }
+        [Required][Key]
+        public int Order_ID { get; set; }       // Unique order indentifier
+        [Required]
+        public int TableNo { get; set; }        // Unique table identifier
     }
 }

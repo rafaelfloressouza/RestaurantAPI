@@ -50,25 +50,27 @@ namespace RestaurantAPI.Controllers
 
         // POST api/transaction
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] Transaction transaction)
+        public ActionResult Post()
         {
-            try
-            {
-                // Inserting record in the Transaction table
-                await _repository.Insert(transaction);
-                return Ok("Record inserted successfully\n");
-            }
-            catch (Npgsql.PostgresException ex)
-            {
-                // Postgres threw an exception
-                return BadRequest(ex.Message.ToString());
 
-            }
-            catch
-            {
-                // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
-            }
+            return BadRequest("Error: Records cannot be added to the Trasaction Table. Try inserting and Order and a Transaction will be automatically be created\n");
+            //try
+            //{
+            //    // Inserting record in the Transaction table
+            //    await _repository.Insert(transaction);
+            //    return Ok("Record inserted successfully\n");
+            //}
+            //catch (Npgsql.PostgresException ex)
+            //{
+            //    // Postgres threw an exception
+            //    return BadRequest(ex.Message.ToString());
+
+            //}
+            //catch
+            //{
+            //    // Unknown error
+            //    return BadRequest("Error: Record was not inserted\n");
+            //}
         }
 
 
