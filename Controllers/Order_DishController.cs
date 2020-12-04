@@ -14,12 +14,14 @@ namespace RestaurantAPI.Controllers
         private readonly Order_DishRepository _repository;
         private readonly OrderRepository _orderRepository;
         private readonly TransactionRepository _transationRepository;
-    
-        public Order_DishController(Order_DishRepository repository, OrderRepository orderRepository, TransactionRepository transactionRepository)
+        private readonly DishRepository _dishRepository;
+
+        public Order_DishController(Order_DishRepository repository, OrderRepository orderRepository, TransactionRepository transactionRepository, DishRepository dishRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
             _transationRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
+            _dishRepository = dishRepository ?? throw new ArgumentNullException(nameof(dishRepository));
         }
 
         // GET: api/order_dish
@@ -61,6 +63,13 @@ namespace RestaurantAPI.Controllers
             {
                 // Inserting record in the Order_Dish table
                 await _repository.Insert(order_dish);
+
+                // if no exceptionn was thrown by insert above, the record was successfully inserted
+                // We update the amount in the corresponding transaction
+                Order order = await _orderRepository.GetById(order_dish.Order_ID);
+                Dish dish = await _dishRepository.GetById(order_dish.Dish_ID);
+                await _transationRepository.updateAmount(order.Transaction_ID, await _transationRepository.getAmount(order.Transaction_ID) + dish.Price);
+
                 return Ok("Record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
@@ -94,7 +103,7 @@ namespace RestaurantAPI.Controllers
 
                 string format1 = "Record in the Order_Dish table with key=(Dish_ID={0},Order_ID={1}) deleted succesfully\n";
                 string format2 = "Record in the Order table with Order_ID={0} deleted because orders should contain at least one dish (the last dish was removed)\n";
-                
+
                 // Getting number of dishes in the order for that ingredient
                 if (await _repository.getNumberOfDishes(order_id) == 1)
                 {
@@ -104,10 +113,10 @@ namespace RestaurantAPI.Controllers
                     await _orderRepository.DeleteById(order_id);
 
                     // In case we delete the last order contained in a transaction, we delete the transaction as well
-                    if(await _orderRepository.numOrderByTransaction(order_response.Transaction_ID) == 1)
+                    if (await _orderRepository.numOrderByTransaction(order_response.Transaction_ID) == 1)
                     {
                         await _transationRepository.DeleteById(order_response.Transaction_ID);
-                        return Ok(string.Format("Records in the Order, Order_Dish due to database constraints\n"));
+                        return Ok(string.Format("Records in the Order, Order_Dish and Transaction deleted successfully due to database constraints\n"));
                     }
 
                     return Ok(string.Format(format2, order_id));
@@ -152,6 +161,15 @@ namespace RestaurantAPI.Controllers
                 // Some unknown exception
                 return BadRequest("ERROR: Number of dishes for that record could not be retrieved");
             }
+        }
+
+        //api/order_dish/getOrderList/4
+        [Route("getOrderList/{dish_id}")]
+        [HttpGet]
+        public async Task<List<Order>> Get(int dish_id)
+        {
+            // Get all orders containing the specified dish
+            return await _repository.getOrderList(dish_id);
         }
     }
 }

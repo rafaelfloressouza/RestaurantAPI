@@ -15,11 +15,13 @@ namespace RestaurantAPI.Controllers
         private readonly Dish_IngredientRepository _repository;
         private readonly DishRepository _dishRepository;
         private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+        private DishController _dishController;
 
-        public Dish_IngredientController(Dish_IngredientRepository repository, DishRepository dishRepository)
+        public Dish_IngredientController(Dish_IngredientRepository repository, DishRepository dishRepository, DishController dishController)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _dishRepository = dishRepository ?? throw new ArgumentNullException(nameof(dishRepository));
+            _dishController = dishController ?? throw new ArgumentNullException(nameof(dishController));
         }
 
         // GET: api/dish_ingredient
@@ -101,10 +103,8 @@ namespace RestaurantAPI.Controllers
                 // If last ingredient from dish is removed -> remove dish as well
                 if (await _repository.numIngredientsInDish(dish_id) == 1)
                 {
-                    await _dishRepository.DeleteById(dish_id);
-                    // NOTE: This deletion will cascade to the Dish_Ingredient Table
-                    string format = "Record from Dish table with id={0} deleted\n";
-                    return Ok(string.Format(format, dish_id));
+                    await _repository.DeleteById(dish_id, ing_name);
+                    return await _dishController.Delete(dish_id);
                 }
                 else // Remove record in the Dish_Ingredient table
                 {

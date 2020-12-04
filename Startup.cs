@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RestaurantAPI.Data;
+using RestaurantAPI.Controllers;
 
 namespace RestaurantAPI
 {
@@ -39,6 +40,7 @@ namespace RestaurantAPI
             services.AddScoped<Order_DishRepository>();
             services.AddScoped<Online_OrderRepository>();
             services.AddScoped<In_Store_OrderRepository>();
+            services.AddScoped<DishController>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -126,5 +126,14 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("Error: Record could not be deleted\n");
             }
         }
+
+        //api/employee/getManagedBy
+        [Route("getManagedBy/{manager_id}")]
+        [HttpGet]
+        public async Task<List<Employee>> getManagedBy(int manager_id)
+        {
+            // Getting all employees managed by manager with user_id
+            return await _repository.getManagedBy(manager_id);
+        }
     }
 }

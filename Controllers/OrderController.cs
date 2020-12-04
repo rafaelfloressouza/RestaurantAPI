@@ -79,7 +79,7 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // POST api/order/in_store/6
+        // POST api/order/in_store/6/8
         [Route("in_store/{tableno}/{dish_id}/{tran_id?}")]
         [HttpPost]
         public async Task<ActionResult> Post([FromBody] Order_No_Transaction order_no_transaction, int tableno, int dish_id, int? tran_id=null)

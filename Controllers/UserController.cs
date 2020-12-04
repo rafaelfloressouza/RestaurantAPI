@@ -5,7 +5,6 @@ using RestaurantAPI.Data;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Globalization;
-using System.Runtime.InteropServices;
 
 namespace RAPI2.Controllers
 {
@@ -207,7 +206,7 @@ namespace RAPI2.Controllers
             }
         }
 
-        // api/user
+        // api/user/getLastInserted
         [Route("getLastInserted")]
         [HttpGet]
         public async Task<ActionResult> getLastInserted()

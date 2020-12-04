@@ -13,11 +13,13 @@ namespace RestaurantAPI.Controllers
 
         private readonly CustomerRepository _repository;
         private readonly UserRepository _userRepository;
+        private readonly TableRepository _tableRepository;
 
-        public CustomerController(CustomerRepository repository, UserRepository userRepository)
+        public CustomerController(CustomerRepository repository, UserRepository userRepository, TableRepository tableRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _userRepository = userRepository ?? throw new ArgumentException(nameof(userRepository));
+            _tableRepository = tableRepository ?? throw new ArgumentException(nameof(tableRepository));
         }
 
         // GET: api/customer
@@ -58,35 +60,59 @@ namespace RestaurantAPI.Controllers
             return BadRequest("ERROR: You cannot insert entries into the Customer table. Try inserting a new user\n");
         }
 
-        // PUT api/customer/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Put(int id, [FromBody] Customer customer)
+        //api/customer/sit/3
+        [Route("sit/{user_id}/{tableno}")]
+        [HttpPut]
+        public async Task<ActionResult> Sit(int user_id, int tableno)
         {
-            // If id in body does not match id in URL
-            if (id != customer.User_ID)
-            {
-                return BadRequest("id in URL has to match the id of the record to be updated\n");
-            }
-
             try
             {
-                // Searching for record in the database
-                var response = await _repository.GetById(id);
+                // Making sure customer and table exist
+                await _tableRepository.GetById(tableno);
+                await _repository.GetById(user_id);
 
-                if (response == null)
-                {
-                    // If record does not exists
-                    return NotFound("Record was not found\n");
-                }
-                else
-                {
-                    // If record was found modify it
-                    await _repository.ModifyById(customer);
-                    string format = "The record with key={0} was updated succesfully\n";
-                    return Ok(String.Format(format, id));
-                }
+                // "Sitting" the customer at a table
+                await _repository.Sit(user_id, tableno);
 
+                // Making the table occupied
+                await _tableRepository.makeOcuppied(tableno);
+
+                string format = "The customer with id={0} is sitting at table {1}";
+                return Ok(string.Format(format, user_id, tableno));
             }
+
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Unknown error
+                return BadRequest("Error: Record scould not be updated\n");
+            }
+        }
+
+        //api/customer/leave/6
+        [Route("leave/{user_id}")]
+        [HttpPut]
+        public async Task<ActionResult> Leave(int user_id)
+        {
+            try
+            {
+                // Making sure customer exists
+                Customer customer = await _repository.GetById(user_id);
+
+                // Customer leaves the table
+                await _repository.Leave(user_id);
+
+                // Making the table available
+                await _tableRepository.makeDisoccupied(customer.TableNo);
+
+                string format = "The customer with id={0} left table {1}";
+                return Ok(string.Format(format, user_id, customer.TableNo));
+            }
+
             catch (Npgsql.PostgresException ex)
             {
                 // Postgres threw an exception

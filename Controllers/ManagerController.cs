@@ -7,7 +7,6 @@ using RestaurantAPI.Data;
 
 namespace RestaurantAPI.Controllers
 {
-    //[Route("api/[controller]")]
     public class ManagerController : Controller
     {
         private readonly ManagerRepository _repository;
@@ -131,7 +130,8 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        [Route("api/getNumberManagers")]
+        //api/manager/getNumberManagers
+        [Route("api/[controller]/getNumberManagers")]
         [HttpGet]
         public async Task<ActionResult> getManagerNumber()
         {

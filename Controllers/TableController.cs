@@ -137,5 +137,14 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("Error: Record could not be deleted\n");
             }
         }
+
+        // GET: api/table/getWaitedBy/4
+        [Route("getWaitedBy/{waiter_id}")]
+        [HttpGet]
+        public async Task<List<Table>> getWaitedBy(int waiter_id)
+        {
+            // Getting all tables waited by the specified waiter
+            return await _repository.getWaitedBy(waiter_id);
+        }
     }
 }
