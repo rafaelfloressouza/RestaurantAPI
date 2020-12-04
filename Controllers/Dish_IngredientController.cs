@@ -13,11 +13,13 @@ namespace RestaurantAPI.Controllers
     {
 
         private readonly Dish_IngredientRepository _repository;
+        private readonly DishRepository _dishRepository;
         private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
 
-        public Dish_IngredientController(Dish_IngredientRepository repository)
+        public Dish_IngredientController(Dish_IngredientRepository repository, DishRepository dishRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _dishRepository = dishRepository ?? throw new ArgumentNullException(nameof(dishRepository));
         }
 
         // GET: api/dish_ingredient
@@ -75,7 +77,6 @@ namespace RestaurantAPI.Controllers
                 // Unknown error
                 return BadRequest("Error: Record was not inserted\n");
             }
-
         }
 
         // PUT api/dish_ingredient
@@ -87,20 +88,30 @@ namespace RestaurantAPI.Controllers
         }
 
         // DELETE api/dish_ingredient/5/potato
-        [HttpDelete("{order_id}/{ing_name}")]
-        public async Task<ActionResult> Delete(int order_id, string ing_name)
+        [HttpDelete("{dish_id}/{ing_name}")]
+        public async Task<ActionResult> Delete(int dish_id, string ing_name)
         {
             ing_name = textInfo.ToTitleCase(ing_name.ToLower());
 
             try
             {
                 // Searching for record inn the Dish_Ingredient table
-                var response = await _repository.GetById(order_id, ing_name);
+                var response = await _repository.GetById(dish_id, ing_name);
 
-                // Deleting record from Dish_Ingredient table
-                await _repository.DeleteById(order_id, ing_name);
-                string format = "Record with key={0},{1} deleted succesfully\n";
-                return Ok(string.Format(format, order_id, ing_name));
+                // If last ingredient from dish is removed -> remove dish as well
+                if (await _repository.numIngredientsInDish(dish_id) == 1)
+                {
+                    await _dishRepository.DeleteById(dish_id);
+                    // NOTE: This deletion will cascade to the Dish_Ingredient Table
+                    string format = "Record from Dish table with id={0} deleted\n";
+                    return Ok(string.Format(format, dish_id));
+                }
+                else // Remove record in the Dish_Ingredient table
+                {
+                    await _repository.DeleteById(dish_id, ing_name);
+                    string format = "Record with key={0},{1} deleted succesfully\n";
+                    return Ok(string.Format(format, dish_id, ing_name));
+                }
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -111,6 +122,29 @@ namespace RestaurantAPI.Controllers
             {
                 // Unknown error
                 return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        // api/order_dish/getNumDishes/2
+        [Route("numIngredientsInDish/{dish_id}")]
+        [HttpGet]
+        public async Task<ActionResult> numIngredientsInDish(int dish_id)
+        {
+            try
+            {
+                // There is no error and we are able to retrieve the number of ingredients for the specified dish
+                string format = "The number of ingredients in dish = {0} is {1}\n";
+                return Ok(string.Format(format, dish_id, await _repository.numIngredientsInDish(dish_id)));
+        }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Postgres threw an exception
+                return BadRequest(ex.Message.ToString());
+            }
+            catch
+            {
+                // Some unknown exception
+                return BadRequest("ERROR: Number of ingredients for that record could not be retrieved");
             }
         }
     }

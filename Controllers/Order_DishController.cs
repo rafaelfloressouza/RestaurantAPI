@@ -131,6 +131,7 @@ namespace RestaurantAPI.Controllers
             }
         }
 
+        // api/order_dish/getNumDishes/2
         [Route("getNumDishes/{order_id}")]
         [HttpGet]
         public async Task<ActionResult> getNumDishes(int order_id)

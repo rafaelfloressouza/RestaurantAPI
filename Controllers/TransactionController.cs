@@ -52,27 +52,8 @@ namespace RestaurantAPI.Controllers
         [HttpPost]
         public ActionResult Post()
         {
-
             return BadRequest("Error: Records cannot be added to the Trasaction Table. Try inserting and Order and a Transaction will be automatically be created\n");
-            //try
-            //{
-            //    // Inserting record in the Transaction table
-            //    await _repository.Insert(transaction);
-            //    return Ok("Record inserted successfully\n");
-            //}
-            //catch (Npgsql.PostgresException ex)
-            //{
-            //    // Postgres threw an exception
-            //    return BadRequest(ex.Message.ToString());
-
-            //}
-            //catch
-            //{
-            //    // Unknown error
-            //    return BadRequest("Error: Record was not inserted\n");
-            //}
         }
-
 
         // PUT api/transaction/5
         [HttpPut("{tran_id}")]
@@ -138,6 +119,24 @@ namespace RestaurantAPI.Controllers
             {
                 // Unknown error
                 return BadRequest("Error: Record could not be deleted\n");
+            }
+        }
+
+        // api/transaction/4
+        [Route("getAmount/{tran_id}")]
+        [HttpGet]
+        public async Task<ActionResult> getAmount(int tran_id)
+        {
+            try
+            {
+                // Getting the amount in dollars of the transaction
+                string format = "The amount of dollars for the transaction with id={0} is ${1}\n";
+                return Ok(string.Format(format, tran_id, await _repository.getAmount(tran_id)));
+            }
+            catch 
+            {
+                // Some unknown error occurred
+                return BadRequest("ERROR: The dollar amount of the transaction could not be retrieved\n");
             }
         }
     }

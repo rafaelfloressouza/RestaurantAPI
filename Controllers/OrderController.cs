@@ -13,12 +13,11 @@ namespace RestaurantAPI.Controllers
     We initially create an order and an default transaction.
     This transaction would be later updated to contain the actual amount
     spent in dollars and time of the transaction (through a PUT operation possibly).
-    We do this as we know that customer will always pay for an order. We also have to option
+    We do this as we know that customer will always pay for an order. We also have the option
     to link the order to an existing transaction.
     */
     public class Order_No_Transaction
     {
-        public int Order_ID { get; set; }
         public int User_ID { get; set; }
         public DateTime Date_Time { get; set;}
     }
@@ -32,15 +31,22 @@ namespace RestaurantAPI.Controllers
         private readonly Online_OrderRepository _online_orderRepository;
         private readonly TransactionRepository _transactionRepository;
         private readonly Customer_TransactionRepository _customer_TransactionRepository;
+        private readonly TableRepository _tableRepository;
+        private readonly DishRepository _dishRepository;
+        private readonly Order_DishRepository _orderDishRepository;
+
         private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
 
-        public OrderController(OrderRepository repository, In_Store_OrderRepository in_store_orderRepository, Online_OrderRepository online_orderRepository, TransactionRepository transactionRepository, Customer_TransactionRepository customer_TransactionRepository)
+        public OrderController(OrderRepository repository, In_Store_OrderRepository in_store_orderRepository, Online_OrderRepository online_orderRepository, TransactionRepository transactionRepository, Customer_TransactionRepository customer_TransactionRepository, TableRepository tableRepository, Order_DishRepository orderDishRepository, DishRepository dishRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _in_store_orderRepository = in_store_orderRepository ?? throw new ArgumentNullException(nameof(in_store_orderRepository));
             _online_orderRepository = online_orderRepository ?? throw new ArgumentNullException(nameof(online_orderRepository));
             _transactionRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
             _customer_TransactionRepository = customer_TransactionRepository ?? throw new ArgumentNullException(nameof(customer_TransactionRepository));
+            _tableRepository = tableRepository ?? throw new ArgumentNullException(nameof(tableRepository));
+            _orderDishRepository = orderDishRepository ?? throw new ArgumentNullException(nameof(orderDishRepository));
+            _dishRepository = dishRepository ?? throw new ArgumentException(nameof(dishRepository));
         }
 
         // GET: api/order
@@ -74,47 +80,64 @@ namespace RestaurantAPI.Controllers
         }
 
         // POST api/order/in_store/6
-        [Route("in_store/{tableno}/{tran_id?}")]
+        [Route("in_store/{tableno}/{dish_id}/{tran_id?}")]
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] Order_No_Transaction order_no_transaction, int tableno, int? tran_id=null)
+        public async Task<ActionResult> Post([FromBody] Order_No_Transaction order_no_transaction, int tableno, int dish_id, int? tran_id=null)
         {
             try
-            {
-                // TODO: Check if tran_id exists in the transaction table and see if you can play with the price
-                // TODO: Validate table_no
+            { 
+                // Checking if tableno and dish_id exist (otherwise an exception is thrown)
+                await _tableRepository.GetById(tableno);
+                await _dishRepository.GetById(dish_id);
 
-                // Opening a transaction for the order (the transactionn will be modified and finalized once a customer pays) if no tran_id provided
+                int last_tran_inserted = -1;
+                // Opening a transaction for the order 
                 if (tran_id == null)
                 {
+                    // Creating a default transaction
                     Transaction def_tran = new Transaction { Amount = (decimal)0.0, Date_Time = order_no_transaction.Date_Time };
                     // Inserting default transaction into the Transaction table
                     await _transactionRepository.Insert(def_tran);
 
                     // Inserting transaction into Customer_Transaction table
-                    int last_tran_inserted = await _transactionRepository.getLastTransactionInserted();
+                    last_tran_inserted = await _transactionRepository.getLastTransactionInserted();
                     await _customer_TransactionRepository.Insert(new Customer_Transaction { User_ID = order_no_transaction.User_ID, Transaction_ID = last_tran_inserted });
 
                     // Inserting record in the Order table
-                    await _repository.Insert(new Order { Order_ID = order_no_transaction.Order_ID, User_ID = order_no_transaction.User_ID, Transaction_ID=last_tran_inserted,Date_Time = order_no_transaction.Date_Time });
+                    await _repository.Insert(new Order {User_ID = order_no_transaction.User_ID, Transaction_ID=last_tran_inserted,Date_Time = order_no_transaction.Date_Time });
                 }
                 else // The id of an existing transaction was passed, so we just add orders to that transaction.
                 {
+                    // Checking if provided transaction exists (otherwise an exception is thrown)
+                    await _transactionRepository.GetById((int)tran_id);
+
                     // Inserting record in the Order table
-                    await _repository.Insert(new Order { Order_ID = order_no_transaction.Order_ID, User_ID = order_no_transaction.User_ID, Transaction_ID=(int)tran_id, Date_Time = order_no_transaction.Date_Time });
+                    await _repository.Insert(new Order {User_ID = order_no_transaction.User_ID, Transaction_ID=(int)tran_id, Date_Time = order_no_transaction.Date_Time });
                 }
 
                 // Getting last inserted order from Order table
                 int last_order_id = await _repository.getLastOrderInserted();
                 await _in_store_orderRepository.Insert(new In_Store_Order { Order_ID = last_order_id, TableNo=tableno });
 
-                if (tran_id == null)
+                // Inserting new order and dish into Order_Dish table
+                await _orderDishRepository.Insert(new Order_Dish { Order_ID=last_order_id, Dish_ID=dish_id});
+
+                // Updating total amount of transaction respectively and returning a success message
+                if(tran_id == null) // If tran_id was not provided 
                 {
-                    return Ok("Records inserted successfully in the Order, In_Store_Order, and Transaction Tables");
+                    await _transactionRepository.updateAmount(last_tran_inserted, await _transactionRepository.getAmount(last_tran_inserted) + await _repository.getCost(last_order_id));
+                    return Ok("Records inserted successfully in the Order, In_Store_Order, Transaction, and Order_Dish Tables");
                 }
-                else
+                else // tran_id was provided (we added the order to an existing transaction
                 {
-                    return Ok("Records inserted successfully in the Order and In_Store_Order tables\n");
+                    await _transactionRepository.updateAmount((int)tran_id, await _transactionRepository.getAmount((int)tran_id) + await _repository.getCost(last_order_id));
+                    return Ok("Records inserted successfully in the Order, In_Store_Order, and Order_Dish tables\n");
                 }
+            }
+            catch (InvalidCastException)
+            {
+                // Invalid parameters in URI
+                return BadRequest("Provided table number, transaction id, or dish_id do not exist. Please check inputs!\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -130,49 +153,66 @@ namespace RestaurantAPI.Controllers
         }
 
         // POST api/order/online/uber eats
-        [Route("online/{application}/{tran_id?}")]
+        [Route("online/{application}/{dish_id}/{tran_id?}")]
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] Order_No_Transaction order_no_transaction, string application, int? tran_id=null)
+        public async Task<ActionResult> Post([FromBody] Order_No_Transaction order_no_transaction, string application, int dish_id, int? tran_id=null)
         {
             // Making sure application name is in title case (just for convention)
             application = textInfo.ToTitleCase(application.ToLower());
 
             try
             {
-                //TODO: Check if tran_id actually exsits in the transaction table and see if you can play with the price
+                // Checking if tableno and dish_id exist (otherwise an exception is thrown)
+                await _dishRepository.GetById(dish_id);
 
-                // Opening a transaction for the order (the transactionn will be modified and finalized once a customer pays) if no tran_id provided
+                int last_tran_inserted = -1;
+                // Opening a transaction for the order
                 if (tran_id == null)
                 {
+                    // Creating a default transaction
                     Transaction def_tran = new Transaction { Amount = (decimal)0.0, Date_Time = order_no_transaction.Date_Time };
                     // Inserting default transaction into the Transaction table
                     await _transactionRepository.Insert(def_tran);
 
                     // Inserting transaction into Customer_Transaction table
-                    int last_tran_inserted = await _transactionRepository.getLastTransactionInserted();
+                    last_tran_inserted = await _transactionRepository.getLastTransactionInserted();
                     await _customer_TransactionRepository.Insert(new Customer_Transaction { User_ID = order_no_transaction.User_ID, Transaction_ID = last_tran_inserted });
 
                     // Inserting record in the Order table
-                    await _repository.Insert(new Order { Order_ID = order_no_transaction.Order_ID, User_ID = order_no_transaction.User_ID, Transaction_ID = last_tran_inserted, Date_Time = order_no_transaction.Date_Time });
+                    await _repository.Insert(new Order { User_ID = order_no_transaction.User_ID, Transaction_ID = last_tran_inserted, Date_Time = order_no_transaction.Date_Time });
                 }
                 else // The id of an existing transaction was passed, so we just add orders to that transaction.
                 {
+                    // Checking if provided transaction exists (otherwise an exception is thrown)
+                    await _transactionRepository.GetById((int)tran_id);
+
                     // Inserting record in the Order table
-                    await _repository.Insert(new Order { Order_ID = order_no_transaction.Order_ID, User_ID = order_no_transaction.User_ID, Transaction_ID = (int)tran_id, Date_Time = order_no_transaction.Date_Time });
+                    await _repository.Insert(new Order { User_ID = order_no_transaction.User_ID, Transaction_ID = (int)tran_id, Date_Time = order_no_transaction.Date_Time });
                 }
 
                 // Getting last inserted order from Order table
                 int last_order_id = await _repository.getLastOrderInserted();
                 await _online_orderRepository.Insert(new Online_Order { Order_ID = last_order_id, Application = application });
 
-                if (tran_id == null)
+                // Inserting new order and dish into Order_Dish table
+                await _orderDishRepository.Insert(new Order_Dish { Order_ID = last_order_id, Dish_ID = dish_id });
+
+                // Updating total amount of transaction respectively and returning a success message
+                if (tran_id == null) // If tran_id was not provided 
                 {
-                    return Ok("Records inserted successfully in the Order, Online_Order, and Transaction Tables");
+                    await _transactionRepository.updateAmount(last_tran_inserted, await _transactionRepository.getAmount(last_tran_inserted) + await _repository.getCost(last_order_id));
+                    return Ok("Records inserted successfully in the Order, Online_Order, Transaction, and Order_Dish Tables");
                 }
-                else
+                else // tran_id was provided (we added the order to an existing transaction
                 {
-                    return Ok("Records inserted successfully in the Order and Online_Order tables\n");
+                    await _transactionRepository.updateAmount((int)tran_id, await _transactionRepository.getAmount((int)tran_id) + await _repository.getCost(last_order_id));
+                    return Ok("Records inserted successfully in the Order, Online_Order, and Order_Dish tables\n");
                 }
+            }
+            catch (InvalidCastException)
+            {
+                // Invalid paramers in URI
+                return BadRequest("Provided transaction id or dish_id do not exist. Please check inputs!\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -241,14 +281,18 @@ namespace RestaurantAPI.Controllers
                 if (await _repository.numOrderByTransaction(response.Transaction_ID) == 1)
                 {
                     // Deleting records from Order table and Transaction table
+                    // NOTE_1: records in the Order_Dish will also be delted as the order is being deleted (cascading)
+                    // NOTE_2: Records in the transaction table will only be deleted if its the only order left
                     await _repository.DeleteById(order_id);
                     await _transactionRepository.DeleteById(response.Transaction_ID);
                     string format = "Order with key={0} and Transaction with key={1} deleted succesfully from Order and Transaction tables\n";
-                    return Ok(string.Format(format, order_id));
+                    return Ok(string.Format(format, order_id, response.Transaction_ID));
                 }
                 else
                 {
                     // Deleting record from Order table
+                    // There is more than one order in the Order table
+                    // NOTE_1: The order we are deleting will cascade to the Order_Dish Table
                     await _repository.DeleteById(order_id);
                     string format = "Order with key={0} deleted succesfully from Order table\n";
                     return Ok(string.Format(format, order_id));
@@ -299,6 +343,24 @@ namespace RestaurantAPI.Controllers
             {
                 // Some unknown error occurred
                 return BadRequest("ERROR: Unable to get the number of orders for that transaction\n");
+            }
+        }
+
+        // api/order/getCost/5
+        [Route("getCost/{order_id}")]
+        [HttpGet]
+        public async Task<ActionResult> getCost(int order_id)
+        {
+            try
+            {
+                // Getting the number of orders for the specific transaction
+                string format = "The order with id={0} costs {1}\n";
+                return Ok(string.Format(format, order_id, await _repository.getCost(order_id)));
+            }
+            catch
+            {
+                // Some unknown error occurred
+                return BadRequest("ERROR: Unable to get the cost for the desired order\n");
             }
         }
     }
