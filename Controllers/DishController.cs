@@ -218,5 +218,14 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("ERROR: Unable to get the id of the last inserted dish\n");
             }
         }
+
+        //api/dish/getIngredients/5
+        [Route("getIngredients/{dish_id}")]
+        [HttpGet]
+        public async Task<List<string>> getIngredients(int dish_id)
+        {
+            // Getting all ingredients for a specific dish 
+            return await _repository.getIngredients(dish_id);
+        }
     }    
 }

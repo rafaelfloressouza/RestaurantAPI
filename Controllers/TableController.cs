@@ -44,7 +44,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Record you are searching for does not exist or URI is wrong!\n");
             }
         }
 
@@ -108,7 +108,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
@@ -138,13 +138,22 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // GET: api/table/getWaitedBy/4
+        //api/table/getWaitedBy/4
         [Route("getWaitedBy/{waiter_id}")]
         [HttpGet]
         public async Task<List<Table>> getWaitedBy(int waiter_id)
         {
             // Getting all tables waited by the specified waiter
             return await _repository.getWaitedBy(waiter_id);
+        }
+
+        //api/table/getOccupied
+        [Route("getOccupied")]
+        [HttpGet]
+        public async Task<List<Table>> getOccupied()
+        {
+            // Getting all tables that are currently occupied
+            return await _repository.getOccupied();
         }
     }
 }

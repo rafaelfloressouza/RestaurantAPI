@@ -363,5 +363,14 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("ERROR: Unable to get the cost for the desired order\n");
             }
         }
+
+        //api/order/getDishes/5
+        [Route("getDishes/{order_id}")]
+        [HttpGet]
+        public async Task<List<Dish>> getIngredients(int order_id)
+        {
+            // Getting all dishes for a specific order 
+            return await _repository.getDishes(order_id);
+        }
     }
 }

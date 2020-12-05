@@ -48,7 +48,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Record you are searching for does not exist or the URI is wrong\n");
             }
         }
 
@@ -60,7 +60,7 @@ namespace RestaurantAPI.Controllers
             return BadRequest("ERROR: You cannot insert entries into the Customer table. Try inserting a new user\n");
         }
 
-        //api/customer/sit/3
+        //api/customer/sit/3/5
         [Route("sit/{user_id}/{tableno}")]
         [HttpPut]
         public async Task<ActionResult> Sit(int user_id, int tableno)
@@ -149,6 +149,33 @@ namespace RestaurantAPI.Controllers
                 // Unknown error
                 return BadRequest("Error: Record could not be deleted\n");
             }
+        }
+
+        //api/customer/AtTable/5
+        [Route("AtTable/{tableno}")]
+        [HttpGet]
+        public async Task<List<Customer>> atTable(int tableno)
+        {
+            // Getting all customer currently sitting at a table 
+            return await _repository.atTable(tableno);
+        }
+
+        //api/customer/getTransactions/5
+        [Route("getTransactions/{user_id}")]
+        [HttpGet]
+        public async Task<List<Transaction>> getTransactions(int user_id)
+        {
+            // Getting all trasactions for a specific customer 
+            return await _repository.getTransactions(user_id);
+        }
+
+        //api/customer/getReviews/5
+        [Route("getReviews/{user_id}")]
+        [HttpGet]
+        public async Task<List<Review>> getReviews(int user_id)
+        {
+            // Getting all trasactions for a specific customer 
+            return await _repository.getReviews(user_id);
         }
     }
 }

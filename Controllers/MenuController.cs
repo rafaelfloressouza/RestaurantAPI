@@ -147,5 +147,14 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("Error: Record could not be deleted\n");
             }
         }
+
+        //api/menu/getDishes/normal
+        [Route("getDishes/{type}")]
+        [HttpGet]
+        public async Task<List<Dish>> getDishes(string type)
+        {
+            // Getting all dishes for a specific menu 
+            return await _repository.getDishes(type);
+        }
     }
 }
