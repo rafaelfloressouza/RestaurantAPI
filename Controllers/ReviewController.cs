@@ -100,7 +100,7 @@ namespace RestaurantAPI.Controllers
                 {
                     // If record was found modify it
                     await _repository.ModifyById(review);
-                    string format = "The record with key={0},{1} was updated succesfully\n";
+                    string format = "The record with key=({0},{1}) was updated succesfully\n";
                     return Ok(String.Format(format, user_id, review_id));
                 }
 
@@ -113,7 +113,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Record could not be updated\n");
             }
         }
 
@@ -128,7 +128,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from Review table
                 await _repository.DeleteById(user_id, review_id);
-                string format = "Record with key={0},{1} deleted succesfully\n";
+                string format = "Record with key=({0},{1}) deleted succesfully\n";
                 return Ok(string.Format(format, user_id, review_id));
             }
             catch (Npgsql.PostgresException ex)

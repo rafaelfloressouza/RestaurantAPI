@@ -104,16 +104,16 @@ namespace RestaurantAPI.Controllers
         }
 
         // DELETE api/manager/5
-        [Route("api/[controller]/{id:int}")]
+        [Route("api/[controller]/{id}")]
         [HttpDelete]
         public async Task<ActionResult> Delete(int id)
         {
             try
             {
-                // Searching for record inn the Manager table
+                // Searching for record in the Manager table
                 var response = await _repository.GetById(id);
 
-                // Deleting record from User table (it will cascade to the Customer table)
+                // Deleting record from User table (it will cascade to the Manager table)
                 await _userRepository.DeleteById(id);
                 string format = "Record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));

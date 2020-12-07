@@ -1,0 +1,210 @@
+-- Table Creation Queries ~ 19 Tables in Total
+
+CREATE TABLE "User"(
+	"ID"			SERIAL 	PRIMARY KEY,
+	"Username"		VARCHAR(50)	NOT NULL,
+	"Password"		VARCHAR(50)	NOT NULL,
+	"FirstName"		VARCHAR(50)	NOT NULL,
+	"MiddleName"	VARCHAR(50), 
+	"LastName"		VARCHAR(50) NOT NULL,
+	"GivenName"		VARCHAR(50),
+	"Addr1"			VARCHAR(50) NOT NULL,
+	"Addr2"			VARCHAR(50),
+	"Province"		VARCHAR(50) NOT NULL,
+	"PostalCode"	VARCHAR(10) NOT NULL,
+	"Sex"			VARCHAR(3)	NOT NULL,
+	"Phone"			VARCHAR(15) NOT NULL,
+	"DOB"			DATE		NOT NULL,
+	"Email"			VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE "Table"(
+	"TableNo" 		SERIAL 			PRIMARY KEY, 
+	"Location"		VARCHAR(50)		NOT NULL,
+	"isOccupied" 	BOOLEAN			NOT NULL 	DEFAULT FALSE,
+	"waiter_ID"		INT,
+	FOREIGN KEY("waiter_ID") REFERENCES	"User"("ID")
+		ON DELETE SET NULL
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Employee"(
+	"User_ID"		INT				NOT NULL,
+	"Start_Date"	DATE 			NOT NULL,
+	"Job_Title"		VARCHAR(50) 	NOT NULL,
+	"Salary"		NUMERIC(8, 2) 	NOT NULL,
+	"mgr_ID"		INT,
+	PRIMARY KEY("User_ID"),
+	FOREIGN KEY("mgr_ID") REFERENCES "User"("ID")
+		ON DELETE SET NULL
+		ON UPDATE CASCADE,
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE	
+);
+
+CREATE TABLE "Manager"(
+	"User_ID"	INT			NOT NULL,
+	"Area"		VARCHAR(50) NOT NULL,
+	PRIMARY KEY("User_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE "Waiter"(
+	"User_ID"	INT				NOT NULL,
+	"Hours"		NUMERIC(7,2) 	NOT NULL,
+	"Type"		VARCHAR(50)		NOT NULL,
+	PRIMARY KEY("User_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Cook"(
+	"User_ID"	INT				NOT NULL,
+	"Specialty"	VARCHAR(50),
+	"Type"		VARCHAR(50) 	NOT NULL,
+	PRIMARY KEY("User_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Menu"(
+	"Type"		VARCHAR(50) 	NOT NULL,
+	"Available"	BOOLEAN 		NOT NULL,
+	PRIMARY KEY("Type")
+);
+
+CREATE TABLE "Dish"(
+	"Dish_ID"		SERIAL			NOT NULL,
+	"Available"		BOOLEAN 		NOT NULL,
+	"Price"			NUMERIC(5, 2)	NOT NULL,
+	"Description" 	VARCHAR(255),
+	"Menu_Type"	 	VARCHAR(50)		NOT NULL,
+	PRIMARY KEY("Dish_ID"),
+	FOREIGN KEY("Menu_Type") REFERENCES "Menu"("Type")
+ 		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Customer"(
+	"User_ID"	INT	NOT NULL,
+	"TableNo"	INT,
+	PRIMARY KEY("User_ID"),
+	FOREIGN KEY("TableNo") REFERENCES "Table"("TableNo")
+		ON DELETE SET NULL
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Transaction"(
+	"Transaction_ID"	SERIAL 		 NOT NULL,
+	"Amount"			NUMERIC(7,2) NOT NULL,
+	"Date_Time"			TIMESTAMP 	 NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY("Transaction_ID")
+);
+
+CREATE TABLE "Order"(
+	"Order_ID"			SERIAL 		NOT NULL,
+	"User_ID"			INT 		NOT NULL,
+	"Transaction_ID"	INT			NOT NULL,
+	"Date_Time" 		TIMESTAMP	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY("Order_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY("Transaction_ID") REFERENCES "Transaction"("Transaction_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Review"(
+	"User_ID"		INT		NOT NULL,
+	"Review_ID"		SERIAL  NOT NULL,
+	"Description"	TEXT 	NOT NULL,
+	"Rating"		INT 	NOT NULL,
+	"Dish_ID"		INT,
+	PRIMARY KEY("User_ID", "Review_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY("Dish_ID") REFERENCES "Dish"("Dish_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Ingredient"(
+	"Name"		VARCHAR(50) 	NOT NULL, 
+	"Price"		NUMERIC(7,2) 	NOT NULL,
+	"Exp_Date"	DATE			NOT NULL,
+	"Quantity"	NUMERIC (5,2)	NOT NULL,
+	PRIMARY KEY("Name")
+);
+
+CREATE TABLE "Customer_Transaction"(
+	"User_ID"				INT NOT NULL,
+	"Transaction_ID"		INT NOT NULL,
+	PRIMARY KEY("User_ID", "Transaction_ID"),
+	FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY("Transaction_ID") REFERENCES "Transaction"("Transaction_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Online_Order"(
+	"Order_ID"		INT NOT NULL,
+	"Application"	VARCHAR(50) NOT NULL,
+	PRIMARY KEY("Order_ID"),
+	FOREIGN KEY("Order_ID")	REFERENCES "Order"("Order_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "In_Store_Order"(
+	"Order_ID"		INT NOT NULL,
+	"TableNo"		INT NOT NULL,
+	PRIMARY KEY("Order_ID"),
+	FOREIGN KEY("Order_ID")	REFERENCES "Order"("Order_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY("TableNo") REFERENCES "Table"("TableNo")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Order_Dish"(
+	"Dish_ID"	INT		NOT NULL,
+	"Order_ID"	INT 	NOT NULL,
+	PRIMARY KEY("Dish_ID", "Order_ID"),
+	FOREIGN KEY	("Dish_ID") REFERENCES "Dish"("Dish_ID")
+		ON DELETE CASCADE 
+		ON UPDATE CASCADE,
+	FOREIGN KEY ("Order_ID") REFERENCES "Order"("Order_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Dish_Ingredient"(
+	"Dish_ID"	INT 		NOT NULL,
+	"Ing_Name"	VARCHAR(50) NOT NULL,
+	PRIMARY KEY("Dish_ID", "Ing_Name"),
+	FOREIGN KEY("Dish_ID")	REFERENCES "Dish"("Dish_ID")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY("Ing_Name")	REFERENCES "Ingredient"("Name")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);
+
+CREATE TABLE "Ingredient_Supplier"(
+	"Supplier"	VARCHAR(50)	NOT NULL,
+	"Ing_Name"	VARCHAR(50) NOT NULL,
+	PRIMARY KEY("Supplier", "Ing_Name"),
+	FOREIGN KEY("Ing_Name") REFERENCES "Ingredient"("Name")
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
+);

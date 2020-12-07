@@ -156,5 +156,14 @@ namespace RestaurantAPI.Controllers
             // Getting all dishes for a specific menu 
             return await _repository.getDishes(type);
         }
+
+        //api/menu/getAvailable
+        [Route("getAvailable")]
+        [HttpGet]
+        public async Task<List<Menu>> getAvailaBle()
+        {
+            // Getting all menus that are currently available
+            return await _repository.getAvailable();
+        }
     }
 }

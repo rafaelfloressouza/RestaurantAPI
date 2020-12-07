@@ -177,5 +177,14 @@ namespace RestaurantAPI.Controllers
             // Getting all trasactions for a specific customer 
             return await _repository.getReviews(user_id);
         }
+
+        //api/customer/getOrders/5
+        [Route("getOrders/{user_id}")]
+        [HttpGet]
+        public async Task<List<Order>> getOrders(int user_id)
+        {
+            // Getting all dishes for a specific order 
+            return await _repository.getOrders(user_id);
+        }
     }
 }

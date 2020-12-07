@@ -125,5 +125,35 @@ namespace RestaurantAPI.Controllers
                 return BadRequest("Error: Record could not be deleted\n");
             }
         }
+
+        // api/in_store_order/getOrdersByWaiter/5
+        [Route("getOrdersByWaiter/{waiter_id}")]
+        [HttpGet]
+        public async Task<List<In_Store_Order>> getOrdersByWaiter(int waiter_id)
+        {
+            try {
+
+                // Returning all in-store-order received by the specified waiter
+                return await _repository.getOrdersByWaiter(waiter_id);
+            }catch{
+                return new List<In_Store_Order>();
+            }
+        }
+
+        // api/in_store_order/getOrdersByTable/5
+        [Route("getOrdersByTable/{tableno}")]
+        [HttpGet]
+        public async Task<List<In_Store_Order>> getOrdersByTable(int tableno)
+        {
+            try
+            {
+                // Returning all in-store-order received by the specified table
+                return await _repository.getOrdersByTable(tableno);
+            }
+            catch
+            {
+                return new List<In_Store_Order>();
+            }
+        }
     }
 }

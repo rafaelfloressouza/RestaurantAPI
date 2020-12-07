@@ -129,6 +129,7 @@ namespace RestaurantAPI.Controllers
             }
         }
 
+        //api/ingredient_supplier/getNumSupplier/potato
         [Route("getNumSuppliers/{ing_name}")]
         [HttpGet]
         public async Task<ActionResult> getNumSuppliers(string ing_name)

@@ -58,12 +58,12 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Record you are searching for does not exist or URI is wrong");
             }
         }
 
         // POST api/dish/potato
-        [HttpPost("{potato}")]
+        [HttpPost("{ing_name}")]
         public async Task<ActionResult> Post([FromBody] Dish dish, string ing_name)
         {
             // Converting ingredient name to title case (for convention)
@@ -227,5 +227,48 @@ namespace RestaurantAPI.Controllers
             // Getting all ingredients for a specific dish 
             return await _repository.getIngredients(dish_id);
         }
-    }    
+
+        //api/dish/getAvailable
+        [Route("getAvailable")]
+        [HttpGet]
+        public async Task<List<Dish>> getAvailable()
+        {
+            // Getting all dishes that are currently available
+            return await _repository.getAvailable();
+        }
+
+        //api/dish/makeAvailable/4
+        [Route("makeAvailable/{dish_id}")]
+        [HttpPut]
+        public async Task<ActionResult> makeAvailable(int dish_id)
+        {
+            // Making a dish available
+            try
+            {
+                await _repository.makeAvailable(dish_id);
+                return Ok("Dish is now available!\n");
+            }
+            catch
+            {
+                return BadRequest("Dish could not be made available\n");
+            }
+        }
+
+        //api/dish/makeUnavailable/4
+        [Route("makeUnavailable/{dish_id}")]
+        [HttpPut]
+        public async Task<ActionResult> makeUnavailable(int dish_id)
+        {
+            // Making a dish unavailable
+            try
+            {
+                await _repository.makeUnavailable(dish_id);
+                return Ok("Dish is now unavailable!\n");
+            }
+            catch
+            {
+                return BadRequest("Dish could not be made unavailable\n");
+            }
+        }
+    }
 }

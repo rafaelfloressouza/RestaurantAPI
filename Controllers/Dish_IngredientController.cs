@@ -97,7 +97,7 @@ namespace RestaurantAPI.Controllers
 
             try
             {
-                // Searching for record inn the Dish_Ingredient table
+                // Searching for record in the Dish_Ingredient table
                 var response = await _repository.GetById(dish_id, ing_name);
 
                 // If last ingredient from dish is removed -> remove dish as well
@@ -146,6 +146,15 @@ namespace RestaurantAPI.Controllers
                 // Some unknown exception
                 return BadRequest("ERROR: Number of ingredients for that record could not be retrieved");
             }
+        }
+
+        //api/dish_ingredient/getIngredientsBySupplier/5
+        [Route("getIngredientsBySupplier/{supplier}")]
+        [HttpGet]
+        public async Task<List<string>> getIngredientsBySupplier(string supplier)
+        {
+            // Getting all ingredients supplied by the specified supplier 
+            return await _repository.getIngredientsBySupplier(supplier);
         }
     }
 }

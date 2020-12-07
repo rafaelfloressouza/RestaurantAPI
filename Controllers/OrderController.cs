@@ -34,10 +34,11 @@ namespace RestaurantAPI.Controllers
         private readonly TableRepository _tableRepository;
         private readonly DishRepository _dishRepository;
         private readonly Order_DishRepository _orderDishRepository;
+        private readonly CustomerRepository _customerRepository;
 
         private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
 
-        public OrderController(OrderRepository repository, In_Store_OrderRepository in_store_orderRepository, Online_OrderRepository online_orderRepository, TransactionRepository transactionRepository, Customer_TransactionRepository customer_TransactionRepository, TableRepository tableRepository, Order_DishRepository orderDishRepository, DishRepository dishRepository)
+        public OrderController(OrderRepository repository, In_Store_OrderRepository in_store_orderRepository, Online_OrderRepository online_orderRepository, TransactionRepository transactionRepository, Customer_TransactionRepository customer_TransactionRepository, TableRepository tableRepository, Order_DishRepository orderDishRepository, DishRepository dishRepository, CustomerRepository customerRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _in_store_orderRepository = in_store_orderRepository ?? throw new ArgumentNullException(nameof(in_store_orderRepository));
@@ -47,6 +48,7 @@ namespace RestaurantAPI.Controllers
             _tableRepository = tableRepository ?? throw new ArgumentNullException(nameof(tableRepository));
             _orderDishRepository = orderDishRepository ?? throw new ArgumentNullException(nameof(orderDishRepository));
             _dishRepository = dishRepository ?? throw new ArgumentException(nameof(dishRepository));
+            _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
         }
 
         // GET: api/order
@@ -86,10 +88,11 @@ namespace RestaurantAPI.Controllers
         {
             try
             { 
-                // Checking if tableno and dish_id exist (otherwise an exception is thrown)
+                // Checking if tableno and dish_id, and user_id exist (otherwise an exception is thrown)
                 await _tableRepository.GetById(tableno);
                 await _dishRepository.GetById(dish_id);
-
+                await _customerRepository.GetById(order_no_transaction.User_ID);
+                
                 int last_tran_inserted = -1;
                 // Opening a transaction for the order 
                 if (tran_id == null)
@@ -162,8 +165,9 @@ namespace RestaurantAPI.Controllers
 
             try
             {
-                // Checking if tableno and dish_id exist (otherwise an exception is thrown)
+                // Checking if dish_id and user_id exist (otherwise an exception is thrown)
                 await _dishRepository.GetById(dish_id);
+                await _customerRepository.GetById(order_no_transaction.User_ID);
 
                 int last_tran_inserted = -1;
                 // Opening a transaction for the order
@@ -354,7 +358,7 @@ namespace RestaurantAPI.Controllers
             try
             {
                 // Getting the number of orders for the specific transaction
-                string format = "The order with id={0} costs {1}\n";
+                string format = "The order with id={0} costs ${1}\n";
                 return Ok(string.Format(format, order_id, await _repository.getCost(order_id)));
             }
             catch
