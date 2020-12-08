@@ -80,14 +80,16 @@ namespace RestaurantAPI.Data
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter("user_id", NpgsqlDbType.Integer));
+                    cmd.Parameters.Add(new NpgsqlParameter("review_id", NpgsqlDbType.Integer));
                     cmd.Parameters.Add(new NpgsqlParameter("description", NpgsqlDbType.Varchar));
                     cmd.Parameters.Add(new NpgsqlParameter("rating", NpgsqlDbType.Integer));
                     cmd.Parameters.Add(new NpgsqlParameter("dish_id", NpgsqlDbType.Integer));
                     cmd.Parameters[0].Value = review.User_ID;
-                    cmd.Parameters[1].Value = review.Description;
-                    cmd.Parameters[2].Value = review.Rating;
+                    cmd.Parameters[1].Value = review.Review_ID;
+                    cmd.Parameters[2].Value = review.Description;
+                    cmd.Parameters[3].Value = review.Rating;
                     if (review.Dish_ID == null) cmd.Parameters[4].Value = DBNull.Value;
-                    else cmd.Parameters[3].Value = review.Dish_ID;
+                    else cmd.Parameters[4].Value = review.Dish_ID;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
@@ -136,6 +138,25 @@ namespace RestaurantAPI.Data
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
+                }
+            }
+        }
+
+        // Function returns the next review id (in order to keep Review as a weak entity)
+        public async Task<int> getNextReviewID(int user_id)
+        {
+            using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))  // Specifying the database context
+            {
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spReview_getNextReviewID\"", sql))   // Specifying stored procedure
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new NpgsqlParameter("user_id", NpgsqlDbType.Integer) { Direction = System.Data.ParameterDirection.Input });
+                    cmd.Parameters[0].Value = user_id;
+                    cmd.Parameters.Add(new NpgsqlParameter("next_review_id", NpgsqlDbType.Integer) { Direction = System.Data.ParameterDirection.Output });
+                    await sql.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                    if (Convert.IsDBNull(cmd.Parameters[1].Value)) return 1;
+                    else return Convert.ToInt32(cmd.Parameters[1].Value);
                 }
             }
         }

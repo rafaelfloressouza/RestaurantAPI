@@ -77,16 +77,14 @@ namespace RestaurantAPI.Data
                 using (NpgsqlCommand cmd = new NpgsqlCommand("\"spDish_InsertValue\"", sql))    // Specifying stored procedure
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add(new NpgsqlParameter("dish_id", NpgsqlDbType.Integer));
                     cmd.Parameters.Add(new NpgsqlParameter("available", NpgsqlDbType.Boolean));
                     cmd.Parameters.Add(new NpgsqlParameter("price", System.Data.DbType.Decimal));
                     cmd.Parameters.Add(new NpgsqlParameter("description", NpgsqlDbType.Varchar));
                     cmd.Parameters.Add(new NpgsqlParameter("menu_type", NpgsqlDbType.Varchar));
-                    cmd.Parameters[0].Value = dish.Dish_ID;
-                    cmd.Parameters[1].Value = dish.Available;
-                    cmd.Parameters[2].Value = dish.Price;
-                    cmd.Parameters[3].Value = dish.Description;
-                    cmd.Parameters[4].Value = dish.Menu_Type;
+                    cmd.Parameters[0].Value = dish.Available;
+                    cmd.Parameters[1].Value = dish.Price;
+                    cmd.Parameters[2].Value = dish.Description;
+                    cmd.Parameters[3].Value = dish.Menu_Type;
                     await sql.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                     return;
@@ -141,7 +139,7 @@ namespace RestaurantAPI.Data
         {   
             using (NpgsqlConnection sql = new NpgsqlConnection(_connectionString))  // Specifying database context
             {
-                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spDish_GetLastInserted\"", sql))    // Specifying stored procedure
+                using (NpgsqlCommand cmd = new NpgsqlCommand("\"spDish_LastInserted\"", sql))    // Specifying stored procedure
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new NpgsqlParameter("cur_dish_id", NpgsqlDbType.Integer) { Direction = System.Data.ParameterDirection.Output });

@@ -46,7 +46,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Cook record you are searching for does not exist or URL is wrong\n");
             }
         }
 
@@ -78,13 +78,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)                         
                 {
                     // If record does not exist
-                    return NotFound("Record was not found\n");
+                    return NotFound("Cook record was not found\n");
                 }
                 else                                         
                 {
                     // Recornd exists, then modify it
                     await _repository.ModifyById(cook);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "The Cook record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, id));
                 }
             }
@@ -96,7 +96,7 @@ namespace RestaurantAPI.Controllers
             catch                                          
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: Cook record could not be updated\n");
             }
         }
 
@@ -109,9 +109,9 @@ namespace RestaurantAPI.Controllers
                 // Search if the record exists
                 var response = await _repository.GetById(id);
 
-                // We delete the user (it will cascade to the cook)
+                // We delete the User (it will cascade to the Cook)
                 await _userRepository.DeleteById(id);           
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Cook record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));
             }
             catch (Npgsql.PostgresException ex)
@@ -122,7 +122,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Cook record could not be deleted\n");
             }
         }
     }

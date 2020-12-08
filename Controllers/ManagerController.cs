@@ -47,7 +47,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Manager record you are searching for does not exist or the URL is wrong");
             }
         }
 
@@ -81,13 +81,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Manager record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyById(manager);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Manager record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, id));
                 }
             }
@@ -99,7 +99,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: Manager record could not be updated\n");
             }
         }
 
@@ -115,7 +115,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from User table (it will cascade to the Manager table)
                 await _userRepository.DeleteById(id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Manager record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));
             }
             catch (Npgsql.PostgresException ex)
@@ -126,7 +126,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Manager record could not be deleted\n");
             }
         }
 
@@ -138,7 +138,7 @@ namespace RestaurantAPI.Controllers
             try
             {
                 int response = await _repository.getManagerNum();
-                string format = "There are {0} manager(s)\n";
+                string format = "There is/are {0} manager(s)\n";
                 return Ok(String.Format(format, response));
             }
             catch (Npgsql.PostgresException ex)

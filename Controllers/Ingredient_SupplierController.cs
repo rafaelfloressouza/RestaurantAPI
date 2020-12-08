@@ -48,7 +48,7 @@ namespace RestaurantAPI.Controllers
             }
             catch (ArgumentNullException)
             {
-                return NotFound("ERROR: Record you are searching was not found. Make sure the ingredient name and supplier are correct");
+                return NotFound("ERROR: Ingredient_Supplier record you are searching was not found. Make sure the ingredient name and supplier are correct");
             }
             catch
             {
@@ -67,7 +67,7 @@ namespace RestaurantAPI.Controllers
             {
                 // Inserting record in the Ingredient_Supplier table
                 await _repository.Insert(ing_sup);
-                return Ok("Record inserted successfully\n");
+                return Ok("Ingredient_Supplier record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -78,7 +78,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Ingredient_Supplier record was not inserted\n");
             }
         }
 
@@ -99,7 +99,7 @@ namespace RestaurantAPI.Controllers
                 // Searching for record in the Ingredient_Supplier table
                 var response = await _repository.GetById(supplier, ing_name);
 
-                string format1 = "Record in the Ingredient Supplier table with key={0},{1} deleted succesfully\n";
+                string format1 = "Ingredient_Supplier record in the Ingredient Supplier table with key=({0},{1}) deleted succesfully\n";
                 string format2 = "Record in the Ingredient table with key={0} deleted because ingredients need suppliers and the only supplier of the ingredient was deleted\n";
  
                 // Getting number of supplier for that ingredient
@@ -125,11 +125,11 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Ingredient_Supplier record could not be deleted\n");
             }
         }
 
-        //api/ingredient_supplier/getNumSupplier/potato
+        //api/ingredient_supplier/getNumSuppliers/potato
         [Route("getNumSuppliers/{ing_name}")]
         [HttpGet]
         public async Task<ActionResult> getNumSuppliers(string ing_name)
@@ -137,7 +137,7 @@ namespace RestaurantAPI.Controllers
             try
             {
                 // There is no error and we are able to retrieve the number of suppliers
-                string format = "The number of suppliers for {0} is {1}\n";
+                string format = "The number of suppliers for {0} is/are {1}\n";
                 return Ok(string.Format(format, ing_name, await _repository.getNumberOfSuppliers(ing_name)));
             }
             catch (Npgsql.PostgresException ex)

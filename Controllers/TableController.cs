@@ -44,7 +44,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist or URI is wrong!\n");
+                return NotFound("Table record you are searching for does not exist or URL is wrong\n");
             }
         }
 
@@ -54,9 +54,12 @@ namespace RestaurantAPI.Controllers
         {
             try
             {
+                // Making the table non-occupied by default
+                table.isOccupied = false;
+
                 // Inserting record in the Table table
                 await _repository.Insert(table);
-                return Ok("Record inserted successfully\n");
+                return Ok("Table record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -67,7 +70,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Table record was not inserted\n");
             }
         }
 
@@ -89,13 +92,14 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Table record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
+                    table.isOccupied = response.isOccupied;
                     await _repository.ModifyById(table);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Table record with key={0} was updated succesfully. Note that occupancy can only be changed when user sits at a table\n";
                     return Ok(String.Format(format, tableno));
                 }
 
@@ -108,7 +112,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: Table record could not be updated\n");
             }
         }
 
@@ -123,7 +127,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from Table table
                 await _repository.DeleteById(tableno);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Table record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, tableno));
             }
             catch (Npgsql.PostgresException ex)
@@ -134,7 +138,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Table record could not be deleted\n");
             }
         }
 

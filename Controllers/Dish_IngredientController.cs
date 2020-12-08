@@ -14,14 +14,16 @@ namespace RestaurantAPI.Controllers
 
         private readonly Dish_IngredientRepository _repository;
         private readonly DishRepository _dishRepository;
+        private readonly IngredientRepository _ingredientRepository;
         private TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
         private DishController _dishController;
 
-        public Dish_IngredientController(Dish_IngredientRepository repository, DishRepository dishRepository, DishController dishController)
+        public Dish_IngredientController(Dish_IngredientRepository repository, DishRepository dishRepository, DishController dishController, IngredientRepository ingredientRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _dishRepository = dishRepository ?? throw new ArgumentNullException(nameof(dishRepository));
             _dishController = dishController ?? throw new ArgumentNullException(nameof(dishController));
+            _ingredientRepository = ingredientRepository ?? throw new ArgumentNullException(nameof(ingredientRepository));
         }
 
         // GET: api/dish_ingredient
@@ -52,7 +54,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Dish_Ingredient record you are searching for does not exist or the URI is wrong\n");
             }
         }
 
@@ -64,9 +66,13 @@ namespace RestaurantAPI.Controllers
             
             try
             {
+                // Making sure that the referred dish and ingredient exist
+                await _ingredientRepository.GetByName(dish_ingredient.Ing_Name);
+                await _dishRepository.GetById(dish_ingredient.Dish_ID);
+
                 // Inserting record in the Dish_Ingredient table
                 await _repository.Insert(dish_ingredient);
-                return Ok("Record inserted successfully\n");
+                return Ok("Dish_Ingredient record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -77,7 +83,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Dish_Ingredient record was not inserted\n");
             }
         }
 
@@ -109,7 +115,7 @@ namespace RestaurantAPI.Controllers
                 else // Remove record in the Dish_Ingredient table
                 {
                     await _repository.DeleteById(dish_id, ing_name);
-                    string format = "Record with key={0},{1} deleted succesfully\n";
+                    string format = "Dish_Ingredient record with key=({0},{1}) deleted succesfully\n";
                     return Ok(string.Format(format, dish_id, ing_name));
                 }
             }
@@ -121,21 +127,24 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Dish_Ingredient record could not be deleted\n");
             }
         }
 
-        // api/order_dish/getNumDishes/2
+        // api/dish_ingredient/NumIngredientsInDish/2
         [Route("numIngredientsInDish/{dish_id}")]
         [HttpGet]
         public async Task<ActionResult> numIngredientsInDish(int dish_id)
         {
             try
             {
+                //Making sure the searched dish exists
+                await _dishRepository.GetById(dish_id);
+
                 // There is no error and we are able to retrieve the number of ingredients for the specified dish
-                string format = "The number of ingredients in dish = {0} is {1}\n";
+                string format = "The number of ingredients in dish with key={0} is {1}\n";
                 return Ok(string.Format(format, dish_id, await _repository.numIngredientsInDish(dish_id)));
-        }
+            }
             catch (Npgsql.PostgresException ex)
             {
                 // Postgres threw an exception
@@ -143,7 +152,7 @@ namespace RestaurantAPI.Controllers
             }
             catch
             {
-                // Some unknown exception
+                // Some unknown exceptions
                 return BadRequest("ERROR: Number of ingredients for that record could not be retrieved");
             }
         }
@@ -153,6 +162,7 @@ namespace RestaurantAPI.Controllers
         [HttpGet]
         public async Task<List<string>> getIngredientsBySupplier(string supplier)
         {
+
             // Getting all ingredients supplied by the specified supplier 
             return await _repository.getIngredientsBySupplier(supplier);
         }

@@ -54,7 +54,7 @@ namespace RAPI2.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("User record you are searching for does not exist or URI is wrong\n");
             }
         }
 
@@ -135,7 +135,7 @@ namespace RAPI2.Controllers
             catch
             {
                 // Unknown errors
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: User record was not inserted\n");
             }
         }
 
@@ -157,13 +157,13 @@ namespace RAPI2.Controllers
                 // If record was not found 
                 if (response == null)
                 {
-                    return NotFound("Record was not found\n");
+                    return NotFound("User record was not found\n");
                 }
                 else
                 {
                     // If record was was, moodify it 
                     await _repository.ModifyById(user);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "User record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, id));
                 }
 
@@ -176,7 +176,7 @@ namespace RAPI2.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: User record could not be updated\n");
             }
         }
 
@@ -191,7 +191,7 @@ namespace RAPI2.Controllers
 
                 // Deleting record from the table
                 await _repository.DeleteById(id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "User record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));
             }
             catch (Npgsql.PostgresException ex)
@@ -202,7 +202,7 @@ namespace RAPI2.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: User record could not be deleted\n");
             }
         }
 

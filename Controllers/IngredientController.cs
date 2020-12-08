@@ -49,7 +49,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Ingredient record you are searching for does not exist or URL is wrong\n");
             }
         }
 
@@ -65,7 +65,7 @@ namespace RestaurantAPI.Controllers
             {
                 // Inserting record in the Dish table
                 await _repository.Insert(ingredient);
-                return Ok("Record inserted successfully\n");
+                return Ok("Ingredient record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -76,7 +76,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Ingredient record was not inserted\n");
             }
         }
 
@@ -103,13 +103,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Ingredient record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyByName(ingredient);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Ingredient record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, ing_name));
                 }
 
@@ -122,7 +122,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: Ingredient record could not be updated\n");
             }
         }
 
@@ -141,7 +141,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from Ingredient table
                 await _repository.DeleteByName(ing_name);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Ingredient record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, ing_name));
             }
             catch (Npgsql.PostgresException ex)
@@ -152,7 +152,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Ingredient record could not be deleted\n");
             }
         }
     }

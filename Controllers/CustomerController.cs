@@ -48,7 +48,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist or the URI is wrong\n");
+                return NotFound("Customer record you are searching for does not exist or the URL is wrong\n");
             }
         }
 
@@ -121,7 +121,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Customer record could not be updated\n");
             }
         }
 
@@ -131,12 +131,12 @@ namespace RestaurantAPI.Controllers
         {
             try
             {
-                // Searching for record inn the Customer table
+                // Searching for record in the Customer table
                 var response = await _repository.GetById(id);
 
                 // Deleting record from User table (it will cascade to the Customer table)
                 await _userRepository.DeleteById(id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Customer record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));
             }
             catch (Npgsql.PostgresException ex)
@@ -147,7 +147,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Customer record could not be deleted\n");
             }
         }
 
@@ -156,8 +156,18 @@ namespace RestaurantAPI.Controllers
         [HttpGet]
         public async Task<List<Customer>> atTable(int tableno)
         {
-            // Getting all customer currently sitting at a table 
-            return await _repository.atTable(tableno);
+            try
+            {
+                // Making sure that the customer being referenced exists
+                await _tableRepository.GetById(tableno);
+
+                // Getting all customer currently sitting at a table 
+                return await _repository.atTable(tableno);
+            }
+            catch
+            {
+                return new List<Customer>();
+            }
         }
 
         //api/customer/getTransactions/5
@@ -165,8 +175,19 @@ namespace RestaurantAPI.Controllers
         [HttpGet]
         public async Task<List<Transaction>> getTransactions(int user_id)
         {
-            // Getting all trasactions for a specific customer 
-            return await _repository.getTransactions(user_id);
+
+            try
+            {
+                // Making sure that the customer being referenced exists
+                await _repository.GetById(user_id);
+
+                // Getting all trasactions for a specific customer 
+                return await _repository.getTransactions(user_id);
+            }
+            catch
+            {
+                return new List<Transaction>();
+            }                
         }
 
         //api/customer/getReviews/5
@@ -174,8 +195,18 @@ namespace RestaurantAPI.Controllers
         [HttpGet]
         public async Task<List<Review>> getReviews(int user_id)
         {
-            // Getting all trasactions for a specific customer 
-            return await _repository.getReviews(user_id);
+            try
+            {
+                // Making sure that the customer being referenced exists
+                await _repository.GetById(user_id);
+
+                // Getting all trasactions for a specific customer 
+                return await _repository.getReviews(user_id);
+            }
+            catch
+            {
+                return new List<Review>();
+            }
         }
 
         //api/customer/getOrders/5
@@ -183,8 +214,18 @@ namespace RestaurantAPI.Controllers
         [HttpGet]
         public async Task<List<Order>> getOrders(int user_id)
         {
-            // Getting all dishes for a specific order 
-            return await _repository.getOrders(user_id);
+            try
+            {
+                // Making sure that the customer being referenced exists
+                await _repository.GetById(user_id);
+
+                // Getting all dishes for a specific order 
+                return await _repository.getOrders(user_id);
+            }
+            catch
+            {
+                return new List<Order>();
+            }
         }
     }
 }

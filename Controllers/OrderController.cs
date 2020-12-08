@@ -77,7 +77,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Order record you are searching for does not exist or URL is wrong");
             }
         }
 
@@ -151,7 +151,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Order record was not inserted\n");
             }
         }
 
@@ -227,7 +227,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Order record was not inserted\n");
             }
         }
 
@@ -249,13 +249,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Order record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyById(order);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Order record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, order_id));
                 }
 
@@ -268,7 +268,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Order record scould not be updated\n");
             }
         }
 
@@ -289,7 +289,7 @@ namespace RestaurantAPI.Controllers
                     // NOTE_2: Records in the transaction table will only be deleted if its the only order left
                     await _repository.DeleteById(order_id);
                     await _transactionRepository.DeleteById(response.Transaction_ID);
-                    string format = "Order with key={0} and Transaction with key={1} deleted succesfully from Order and Transaction tables\n";
+                    string format = "Order record with key={0} and Transaction record with key={1} deleted succesfully from Order and Transaction tables\n";
                     return Ok(string.Format(format, order_id, response.Transaction_ID));
                 }
                 else
@@ -298,7 +298,7 @@ namespace RestaurantAPI.Controllers
                     // There is more than one order in the Order table
                     // NOTE_1: The order we are deleting will cascade to the Order_Dish Table
                     await _repository.DeleteById(order_id);
-                    string format = "Order with key={0} deleted succesfully from Order table\n";
+                    string format = "Order record with key={0} deleted succesfully from Order table\n";
                     return Ok(string.Format(format, order_id));
                 }
             }
@@ -332,10 +332,10 @@ namespace RestaurantAPI.Controllers
             }
         }
 
-        // api/order/numOrdersPerTransaction/5
+        // api/order/numOrdersByTransaction/5
         [Route("numOrdersByTransaction/{tran_id}")]
         [HttpGet]
-        public async Task<ActionResult> getNumOrdersPerTransaction(int tran_id)
+        public async Task<ActionResult> getNumOrdersByTransaction(int tran_id)
         {
             try
             {

@@ -48,7 +48,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Menu record you are searching for does not exist or the URL is wrong");
             }
         }
 
@@ -60,7 +60,7 @@ namespace RestaurantAPI.Controllers
             {
                 // Inserting record in the Manu table
                 await _repository.Insert(menu);
-                return Ok("Record inserted successfully\n");
+                return Ok("Menu record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -71,7 +71,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Menu record was not inserted\n");
             }
         }
 
@@ -97,13 +97,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Menu record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyByType(menu);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Menu record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, type));
                 }
             }
@@ -115,7 +115,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Menu record scould not be updated\n");
             }
         }
 
@@ -133,7 +133,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from Menu
                 await _repository.DeleteByType(type);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Menu record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, type));
             }
             catch (Npgsql.PostgresException ex)
@@ -144,7 +144,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Menu rsecord could not be deleted\n");
             }
         }
 
@@ -160,7 +160,7 @@ namespace RestaurantAPI.Controllers
         //api/menu/getAvailable
         [Route("getAvailable")]
         [HttpGet]
-        public async Task<List<Menu>> getAvailaBle()
+        public async Task<List<Menu>> getAvailable()
         {
             // Getting all menus that are currently available
             return await _repository.getAvailable();

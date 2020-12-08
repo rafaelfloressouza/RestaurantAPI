@@ -51,7 +51,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Order_Dish record you are searching for does not exist or the URL is wrong");
             }
         }
 
@@ -61,6 +61,10 @@ namespace RestaurantAPI.Controllers
         {
             try
             {
+                // Checking if referenced order and dish exist (if not an exception is thrown)
+                await _orderRepository.GetById(order_dish.Order_ID);
+                await _dishRepository.GetById(order_dish.Dish_ID);
+
                 // Inserting record in the Order_Dish table
                 await _repository.Insert(order_dish);
 
@@ -70,7 +74,7 @@ namespace RestaurantAPI.Controllers
                 Dish dish = await _dishRepository.GetById(order_dish.Dish_ID);
                 await _transationRepository.updateAmount(order.Transaction_ID, await _transationRepository.getAmount(order.Transaction_ID) + dish.Price);
 
-                return Ok("Record inserted successfully\n");
+                return Ok("Order_Dish record inserted successfully\n");
             }
             catch (Npgsql.PostgresException ex)
             {
@@ -80,7 +84,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record was not inserted\n");
+                return BadRequest("Error: Order_Dish record was not inserted\n");
             }
         }
 
@@ -136,7 +140,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Order_Dish Record could not be deleted\n");
             }
         }
 

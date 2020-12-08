@@ -1,4 +1,4 @@
--- TOTAL OF 124 STORED PROCEDURES
+-- TOTAL OF 125 STORED PROCEDURES
 -- USER STORED PROCEDURES
 
 CREATE FUNCTION "spUser_GetAll"() RETURNS SETOF "User" AS 'SELECT * FROM "User";' LANGUAGE 'sql';
@@ -42,7 +42,7 @@ CREATE FUNCTION "spDish_GetAll"() RETURNS SETOF "Dish" AS 'SELECT * FROM "Dish";
 
 CREATE FUNCTION "spDish_GetById"(id integer) RETURNS "Dish" AS 'SELECT * FROM "Dish" WHERE id="Dish_ID";' LANGUAGE 'sql';
 
-CREATE FUNCTION "spDish_InsertValue"(dish_id int, available boolean, price decimal, description varchar, menu_type varchar) RETURNS void AS  'INSERT INTO "Dish"("Dish_ID", "Available", "Price", "Description", "Menu_Type") VALUES (dish_id, available, price, description, menu_type);' LANGUAGE 'sql';
+CREATE FUNCTION "spDish_InsertValue"(available boolean, price decimal, description varchar, menu_type varchar) RETURNS void AS  'INSERT INTO "Dish"("Available", "Price", "Description", "Menu_Type") VALUES (available, price, description, menu_type);' LANGUAGE 'sql';
 
 CREATE FUNCTION "spDish_ModifyById"(id int, available boolean, price decimal, description varchar, menu_type varchar) RETURNS void AS 'UPDATE "Dish" SET "Available" = available,"Price" = price,"Description" = description, "Menu_Type" = menu_type WHERE id="Dish_ID";' LANGUAGE 'sql';
 
@@ -184,11 +184,13 @@ CREATE FUNCTION "spReview_GetAll"() RETURNS SETOF "Review" AS 'SELECT * FROM "Re
 
 CREATE FUNCTION "spReview_GetById"(user_id integer, review_id integer) RETURNS "Review" AS 'SELECT * FROM "Review" WHERE user_id="User_ID" AND review_id="Review_ID";' LANGUAGE 'sql';
 
-CREATE FUNCTION "spReview_InsertValue"(user_id int, description varchar, rating int, dish_id int) RETURNS void AS 'INSERT INTO "Review"("User_ID", "Description", "Rating", "Dish_ID") VALUES (user_id, description, rating, dish_id);' LANGUAGE 'sql';
+CREATE FUNCTION "spReview_InsertValue"(user_id int, review_id int, description varchar, rating int, dish_id int) RETURNS void AS 'INSERT INTO "Review"("User_ID", "Review_ID", "Description", "Rating", "Dish_ID") VALUES (user_id, review_id, description, rating, dish_id);' LANGUAGE 'sql';
 
 CREATE FUNCTION "spReview_ModifyById"( user_id int, review_id int, description varchar, rating int, dish_id int)RETURNS void AS 'UPDATE "Review" SET "Description" = description, "Rating" = rating, "Dish_ID" = dish_id WHERE user_id="User_ID" AND review_id="Review_ID";' LANGUAGE 'sql';
 
 CREATE FUNCTION "spReview_DeleteById"(user_id int, review_id int) RETURNS void AS 'DELETE FROM "Review" WHERE user_id="User_ID" AND review_id="Review_ID";' LANGUAGE 'sql';
+
+CREATE FUNCTION "spReview_getNextReviewID"(user_id int) RETURNS int AS $$ SELECT MAX("Review_ID") + 1 FROM "Review" WHERE "User_ID"=user_id; $$ LANGUAGE 'sql';
 
 -- TABLE STORED PROCEDURES
 

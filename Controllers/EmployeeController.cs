@@ -48,7 +48,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Employee record you are searching for does not exist or URL is wrong");
             }
         }
 
@@ -78,13 +78,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Employee record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyById(employee);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Employee record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, id));
                 }
 
@@ -97,7 +97,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Employee record scould not be updated\n");
             }
         }
 
@@ -112,7 +112,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from User table (it will cascade to the Employee table)
                 await _userRepository.DeleteById(id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Employee record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, id));
             }
             catch (Npgsql.PostgresException ex)
@@ -123,7 +123,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Employee record could not be deleted\n");
             }
         }
 

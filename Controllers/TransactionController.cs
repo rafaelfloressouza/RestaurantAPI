@@ -44,7 +44,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Transaction record you are searching for does not exist or the URL is wrong");
             }
         }
 
@@ -73,13 +73,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exists
-                    return NotFound("Record was not found\n");
+                    return NotFound("Transaction record was not found\n");
                 }
                 else
                 {
                     // If record was found modify it
                     await _repository.ModifyById(transaction);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Transaction record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, tran_id));
                 }
 
@@ -92,7 +92,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record scould not be updated\n");
+                return BadRequest("Error: Transaction record scould not be updated\n");
             }
         }
 
@@ -107,7 +107,7 @@ namespace RestaurantAPI.Controllers
 
                 // Deleting record from Transaction table
                 await _repository.DeleteById(tran_id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Transaction record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, tran_id));
             }
             catch (Npgsql.PostgresException ex)
@@ -118,7 +118,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Transaction record could not be deleted\n");
             }
         }
 

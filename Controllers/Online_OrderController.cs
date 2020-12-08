@@ -46,7 +46,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return NotFound("Record you are searching for does not exist");
+                return NotFound("Online_Order record you are searching for does not exist or URL is wrong");
             }
         }
 
@@ -78,13 +78,13 @@ namespace RestaurantAPI.Controllers
                 if (response == null)
                 {
                     // If record does not exist
-                    return NotFound("Record was not found\n");
+                    return NotFound("Online_Order record was not found\n");
                 }
                 else
                 {
                     // Recornd exists, then modify it
                     await _repository.ModifyById(online_order);
-                    string format = "The record with key={0} was updated succesfully\n";
+                    string format = "Online_Order record with key={0} was updated succesfully\n";
                     return Ok(String.Format(format, order_id));
                 }
             }
@@ -96,7 +96,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be updated\n");
+                return BadRequest("Error: Online_Order record could not be updated\n");
             }
         }
 
@@ -111,7 +111,7 @@ namespace RestaurantAPI.Controllers
 
                 // We delete the order (it will cascade to the online_order)
                 await _orderRepository.DeleteById(order_id);
-                string format = "Record with key={0} deleted succesfully\n";
+                string format = "Online_Order record with key={0} deleted succesfully\n";
                 return Ok(string.Format(format, order_id));
             }
             catch (Npgsql.PostgresException ex)
@@ -122,7 +122,7 @@ namespace RestaurantAPI.Controllers
             catch
             {
                 // Unknown error
-                return BadRequest("Error: Record could not be deleted\n");
+                return BadRequest("Error: Online_Order record could not be deleted\n");
             }
         }
     }

@@ -94,6 +94,9 @@ CREATE TABLE "Customer"(
 	"User_ID"	INT	NOT NULL,
 	"TableNo"	INT,
 	PRIMARY KEY("User_ID"),
+    FOREIGN KEY("User_ID") REFERENCES "User"("ID")
+		ON DELETE SET CASCADE
+		ON UPDATE CASCADE,
 	FOREIGN KEY("TableNo") REFERENCES "Table"("TableNo")
 		ON DELETE SET NULL
 		ON UPDATE CASCADE
@@ -122,7 +125,7 @@ CREATE TABLE "Order"(
 
 CREATE TABLE "Review"(
 	"User_ID"		INT		NOT NULL,
-	"Review_ID"		SERIAL  NOT NULL,
+	"Review_ID"		INT     NOT NULL,
 	"Description"	TEXT 	NOT NULL,
 	"Rating"		INT 	NOT NULL,
 	"Dish_ID"		INT,
